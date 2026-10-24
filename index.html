@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مجسم تضاريس الأرض</title>
+<meta name="description" content="كرة أرضية ثلاثية الأبعاد بتضاريس اليابسة وأعماق المحيطات الحقيقية، مع قراءة الارتفاع لأي نقطة.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Reem+Kufi:wght@700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.css">
+<style>
+/* Layout: full-bleed globe on a night-sky ground; one floating instrument panel docked bottom (start side on wide screens). */
+:root{
+  --space:#05070d;
+  --panel:rgba(12,17,28,.80);
+  --line:rgba(150,180,220,.16);
+  --ink:#e8edf5;
+  --dim:#93a0b4;
+  --accent:#f2b544;
+  --f-display:"Reem Kufi","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--space);color:var(--ink);font-family:var(--f-body);font-size:14px;overflow:hidden}
+#map{position:fixed;inset:0;
+  background:
+    radial-gradient(1px 1px at 12% 22%,#cfd8ea 50%,transparent 51%),
+    radial-gradient(1px 1px at 72% 14%,#9fb2d0 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 38% 78%,#cfd8ea 50%,transparent 51%),
+    radial-gradient(1px 1px at 86% 62%,#9fb2d0 50%,transparent 51%),
+    radial-gradient(1px 1px at 22% 58%,#8796b0 50%,transparent 51%),
+    radial-gradient(1px 1px at 58% 40%,#8796b0 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 92% 88%,#cfd8ea 50%,transparent 51%),
+    radial-gradient(1px 1px at 6% 90%,#9fb2d0 50%,transparent 51%),
+    var(--space);
+  background-size:340px 340px,410px 410px,520px 520px,300px 300px,260px 260px,450px 450px,600px 600px,380px 380px,auto}
+.maplibregl-ctrl-attrib{background:rgba(5,7,13,.6)!important;color:var(--dim)!important;font-size:10px}
+.maplibregl-ctrl-attrib a{color:var(--dim)!important}
+.maplibregl-ctrl-attrib-button{filter:invert(1)}
+.maplibregl-ctrl-group{background:var(--panel)!important;border:1px solid var(--line);box-shadow:none!important}
+.maplibregl-ctrl-group button+button{border-top:1px solid var(--line)!important}
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:invert(.9)}
+.maplibregl-ctrl-top-left{top:calc(env(safe-area-inset-top,0px) + 70px);left:env(safe-area-inset-left,0px)}
+
+header{position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);right:max(16px,env(safe-area-inset-right,0px));left:max(16px,env(safe-area-inset-left,0px));pointer-events:none;display:flex;flex-direction:column;gap:2px;z-index:2}
+h1{margin:0;font-family:var(--f-display);font-weight:700;font-size:1.35rem}
+header p{margin:0;color:var(--dim);font-size:.8rem;text-shadow:0 1px 3px #000}
+
+.panel{position:fixed;z-index:3;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);right:max(12px,env(safe-area-inset-right,0px));left:max(12px,env(safe-area-inset-left,0px));max-width:430px;margin-inline-start:auto;
+  background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+@media (min-width:760px){.panel{left:auto;width:400px;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);right:max(20px,env(safe-area-inset-right,0px))}}
+
+.readout{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 12px}
+.place{font-weight:600;font-size:.95rem;min-width:0}
+.coords{grid-column:1;color:var(--dim);font-family:var(--f-num);font-size:.78rem;direction:ltr;text-align:right;font-variant-numeric:tabular-nums}
+.elev{grid-row:1 / span 2;grid-column:2;display:flex;flex-direction:column;align-items:flex-end}
+.elev b{font-family:var(--f-num);font-weight:500;font-size:1.7rem;line-height:1;font-variant-numeric:tabular-nums;direction:ltr}
+.elev b small{font-size:.9rem;color:var(--dim);margin-inline-start:4px}
+.elev span{font-size:.75rem;color:var(--dim);margin-top:4px}
+.elev.water b{color:#9fd3ec}
+.elev.land b{color:var(--accent)}
+
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;font:inherit;font-size:.8rem;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer}
+.chips button:hover{border-color:rgba(242,181,68,.5)}
+.chips button[aria-pressed="true"]{background:rgba(242,181,68,.16);border-color:var(--accent);color:#ffe2a6}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.row{display:flex;align-items:center;gap:10px}
+.row label{font-size:.8rem;color:var(--dim);white-space:nowrap}
+.row output{font-family:var(--f-num);font-size:.85rem;min-width:3.2em;text-align:left;direction:ltr;font-variant-numeric:tabular-nums}
+input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+
+.legend{display:flex;flex-direction:column;gap:4px}
+.bar{height:9px;border-radius:2px}
+.ticks{position:relative;height:14px;direction:ltr;font-family:var(--f-num);font-size:.66rem;color:var(--dim)}
+.ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.cap{direction:ltr;display:flex;justify-content:space-between;font-size:.7rem;color:var(--dim)}
+
+.pin{width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid #fff3d6;box-shadow:0 0 0 6px rgba(242,181,68,.25),0 1px 4px rgba(0,0,0,.6)}
+#err{position:fixed;inset:auto 16px 50% 16px;text-align:center;color:#ffb4a6;z-index:4}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<header>
+  <h1>مجسم تضاريس الأرض</h1>
+  <p>اسحب للتدوير، وقرّب بإصبعين. اسحب بإصبعين للأعلى لإمالة المشهد. اضغط على أي نقطة.</p>
+</header>
+
+<section class="panel" aria-label="لوحة القياس">
+  <div class="readout" aria-live="polite">
+    <div class="place" id="place">الرياض</div>
+    <div class="coords" id="coords">—</div>
+    <div class="elev land" id="elevBox"><b id="elevVal">…</b><span id="elevLbl">فوق سطح البحر</span></div>
+  </div>
+  <div class="chips" id="chips" role="group" aria-label="أماكن جاهزة"></div>
+  <div class="row">
+    <label for="exag">تضخيم الارتفاعات</label>
+    <input type="range" id="exag" min="1" max="6" step="0.5" value="1.5">
+    <output id="exagOut" for="exag">×1.5</output>
+  </div>
+  <div class="legend">
+    <div class="bar" id="bar"></div>
+    <div class="ticks" id="ticks"></div>
+    <div class="cap"><span>أعماق المحيطات (كم)</span><span>ارتفاع اليابسة (كم)</span></div>
+  </div>
+</section>
+<div id="err" hidden></div>
+
+<script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
+<script>
+const TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
+const ATTRIB = '<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noopener">Terrain Tiles: Mapzen, ETOPO1, GEBCO, SRTM وغيرها</a>';
+
+// colour ramp in metres (sea level = 0); stays in one place so the legend and map agree
+const SEA  = [[-11000,'#06163a'],[-7000,'#0b2654'],[-5000,'#123a73'],[-3000,'#1b4f8f'],[-1000,'#2c76b3'],[-150,'#4aa3cf'],[-1,'#7cc6dd']];
+const LAND = [[0,'#5f8f4e'],[200,'#86a35a'],[600,'#b9b56f'],[1200,'#c9a26a'],[2000,'#a77a52'],[3200,'#8a6a5c'],[4500,'#b9b0aa'],[5600,'#f4f2ef']];
+
+let seaLevel = 0;   // metres; the water-draining step will move this
+function reliefColor(){
+  const stops = [...SEA.map(([h,c])=>[h+seaLevel,c]), ...LAND];
+  return ['interpolate',['linear'],['elevation'], ...stops.flat()];
+}
+
+(function legend(){
+  const lo=-11, hi=6, pos=v=>((v-lo)/(hi-lo)*100).toFixed(2)+'%';
+  const stops=[...SEA,...LAND].map(([h,c])=>`${c} ${pos(h/1000)}`);
+  document.getElementById('bar').style.background=`linear-gradient(to right, ${stops.join(',')})`;
+  const t=document.getElementById('ticks');
+  [[-10,'−10'],[-6,'−6'],[-3,'−3'],[0,'0'],[3,'+3'],[6,'+6']].forEach(([v,l])=>{
+    const s=document.createElement('span'); s.textContent=l; s.style.left=pos(v);
+    if(v===-10) s.style.transform='translateX(-20%)'; if(v===6) s.style.transform='translateX(-90%)';
+    t.appendChild(s);
+  });
+})();
+
+const narrow = innerWidth < 760;
+let map;
+try { map = new maplibregl.Map({
+  container:'map',
+  center:[45, 22], zoom: narrow ? 1.05 : 1.9, pitch:0,
+  maxPitch:80, attributionControl:{ compact:true },
+  style:{
+    version:8,
+    projection:{ type:'globe' },
+    sources:{
+      relief:{ type:'raster-dem', tiles:[TILES], tileSize:256, maxzoom:15, encoding:'terrarium', attribution:ATTRIB },
+      terrain:{ type:'raster-dem', tiles:[TILES], tileSize:256, maxzoom:15, encoding:'terrarium' }
+    },
+    sky:{
+      'sky-color':'#05070d', 'horizon-color':'#5b8fe0', 'fog-color':'#9cc0f0',
+      'sky-horizon-blend':0.5, 'horizon-fog-blend':0.6, 'fog-ground-blend':1,
+      'atmosphere-blend':['interpolate',['linear'],['zoom'],0,1,3,0.8,5,0.25,7,0]
+    },
+    layers:[
+      { id:'relief', type:'color-relief', source:'relief', paint:{ 'color-relief-color': reliefColor() } },
+      { id:'shade', type:'hillshade', source:'relief', paint:{
+          'hillshade-exaggeration':0.55, 'hillshade-shadow-color':'rgba(20,14,10,0.75)',
+          'hillshade-highlight-color':'rgba(255,250,235,0.35)', 'hillshade-accent-color':'rgba(40,30,20,0.4)',
+          'hillshade-illumination-anchor':'viewport' } }
+    ],
+    terrain:{ source:'terrain', exaggeration:1.5 }
+  }
+});
+} catch(err) {
+  const e=document.getElementById('err'); e.hidden=false; e.textContent='تعذّر تشغيل العرض ثلاثي الأبعاد على هذا المتصفح.';
+  throw err;
+}
+map.on('error', e => console.warn(e && e.error));
+
+// ---------- elevation readout: decode the same terrain tiles at a useful zoom ----------
+const tileCache = new Map();
+function loadTile(z,x,y){
+  const key=`${z}/${x}/${y}`;
+  if (tileCache.has(key)) return tileCache.get(key);
+  const p = new Promise((ok,fail)=>{
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(img,0,0); ok(g.getImageData(0,0,256,256).data); };
+    img.onerror=()=>fail(new Error('tile '+key));
+    img.src=TILES.replace('{z}',z).replace('{x}',x).replace('{y}',y);
+  });
+  tileCache.set(key,p);
+  if (tileCache.size>60) tileCache.delete(tileCache.keys().next().value);
+  return p;
+}
+async function elevationAt(lng, lat, z){
+  lat=Math.max(-85.05,Math.min(85.05,lat));
+  const n=2**z, x=(lng+180)/360*n, r=lat*Math.PI/180, y=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n;
+  const tx=Math.floor(x)%n, ty=Math.floor(y), px=Math.min(255,Math.floor((x-Math.floor(x))*256)), py=Math.min(255,Math.floor((y-ty)*256));
+  const d=await loadTile(z,tx,ty), i=(py*256+px)*4;
+  return d[i]*256 + d[i+1] + d[i+2]/256 - 32768;
+}
+async function elevationBest(lng, lat, z){
+  for (let zz=z; zz>=0; zz-=3){ try { return await elevationAt(lng,lat,zz); } catch(e){} }
+  throw new Error('no tile');
+}
+
+// ---------- selection ----------
+const PLACES = [
+  { name:'الرياض', lng:46.68, lat:24.71, zoom:9, pitch:50 },
+  { name:'قمة إيفرست', lng:86.925, lat:27.988, zoom:11.2, pitch:70, bearing:200 },
+  { name:'خندق ماريانا', lng:142.2, lat:11.35, zoom:6.5, pitch:60, bearing:-20 },
+  { name:'البحر الميت', lng:35.5, lat:31.5, zoom:9.5, pitch:55 },
+  { name:'جبال السروات', lng:42.55, lat:18.25, zoom:10, pitch:65, bearing:60 },
+  { name:'جراند كانيون', lng:-112.11, lat:36.1, zoom:11, pitch:65, bearing:20 },
+  { name:'جبال الأنديز', lng:-70.01, lat:-32.65, zoom:10, pitch:65 },
+  { name:'وسط الأطلسي', lng:-30, lat:30, zoom:4.5, pitch:55 }
+];
+const chips=document.getElementById('chips');
+PLACES.forEach((p,i)=>{
+  const b=document.createElement('button'); b.type='button'; b.id='place-'+i; b.textContent=p.name; b.setAttribute('aria-pressed','false');
+  b.addEventListener('click',()=>{
+    select(p.lng,p.lat,p.name,Math.min(13,Math.round(p.zoom)+1));
+    map.flyTo({ center:[p.lng,p.lat], zoom:p.zoom, pitch:p.pitch, bearing:p.bearing||0, duration:matchMedia('(prefers-reduced-motion: reduce)').matches?0:5000, essential:true });
+  });
+  chips.appendChild(b);
+});
+
+const pinEl=document.createElement('div'); pinEl.className='pin';
+const pin=new maplibregl.Marker({ element:pinEl });
+const fmt=new Intl.NumberFormat('en-US');
+let selToken=0;
+async function select(lng,lat,name,z){
+  const tok=++selToken;
+  pin.setLngLat([lng,lat]).addTo(map);
+  document.getElementById('place').textContent = name || 'نقطة مختارة';
+  document.getElementById('coords').textContent = `${Math.abs(lat).toFixed(3)}° ${lat>=0?'N':'S'}   ${Math.abs(lng).toFixed(3)}° ${lng>=0?'E':'W'}`;
+  chips.querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-pressed',String(PLACES[i].name===name)));
+  const val=document.getElementById('elevVal'), box=document.getElementById('elevBox'), lbl=document.getElementById('elevLbl');
+  val.textContent='…';
+  try{
+    const m=Math.round(await elevationBest(lng,lat,z));
+    if (tok!==selToken) return;
+    if (m < seaLevel){ box.className='elev water'; val.innerHTML=`${fmt.format(Math.abs(m))}<small>م</small>`; lbl.textContent='عمق تحت سطح البحر'; }
+    else { box.className='elev land'; val.innerHTML=`${m<0?'−':''}${fmt.format(Math.abs(m))}<small>م</small>`; lbl.textContent='فوق سطح البحر'; }
+  }catch(e){ if(tok===selToken){ val.textContent='—'; lbl.textContent='تعذّر قراءة الارتفاع هنا'; } }
+}
+map.on('click', e => {
+  const z=Math.max(3,Math.min(13,Math.round(map.getZoom())+2));
+  select(e.lngLat.lng, e.lngLat.lat, null, z);
+});
+
+const exag=document.getElementById('exag'), exagOut=document.getElementById('exagOut');
+exag.addEventListener('input',()=>{ exagOut.textContent='×'+(+exag.value); map.setTerrain({ source:'terrain', exaggeration:+exag.value }); });
+
+map.on('load',()=>{
+  select(PLACES[0].lng,PLACES[0].lat,PLACES[0].name,10);
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch:true, showCompass:true }), 'top-left');
+});
+</script>
+</body>
+</html>
