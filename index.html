@@ -221,6 +221,7 @@ const ATTRIB = '<a href="https://github.com/tilezen/joerd/blob/master/docs/attri
 const SEA  = [[-11000,'#06163a'],[-7000,'#0b2654'],[-5000,'#123a73'],[-3000,'#1b4f8f'],[-1000,'#2c76b3'],[-150,'#4aa3cf'],[-1,'#7cc6dd']];
 const LAND = [[0,'#5f8f4e'],[200,'#86a35a'],[600,'#b9b56f'],[1200,'#c9a26a'],[2000,'#a77a52'],[3200,'#8a6a5c'],[4500,'#b9b0aa'],[5600,'#f4f2ef']];
 
+const RL={ relief:'relief', shade:'shade', src:'relief', ter:'terrain' };   // the layers and sources on screen now
 let seaLevel = 0;   // metres below today's sea level that the water surface has dropped to (≤ 0)
 // Colours are elevation bands, not vegetation. Today's land keeps its colours whatever the
 // water does; seabed that the draining exposes gets deeper greens the lower it lies.
@@ -372,7 +373,7 @@ map.on('click', e => {
 
 const exag=document.getElementById('exag'), exagOut=document.getElementById('exagOut');
 let is3D=true;
-exag.addEventListener('input',()=>{ exagOut.textContent='×'+(+exag.value); if(is3D) map.setTerrain({ source:'terrain', exaggeration:+exag.value }); });
+exag.addEventListener('input',()=>{ exagOut.textContent='×'+(+exag.value); if(is3D) map.setTerrain({ source:RL.ter, exaggeration:+exag.value }); });
 
 // ---------- 3D / 2D ----------
 const moreEl=document.getElementById('more'), moreBtn=document.getElementById('moreBtn');
@@ -405,7 +406,7 @@ function setView(three){
     map.setMaxPitch(80);
     map.dragRotate.enable(); map.touchZoomRotate.enableRotation(); map.touchPitch.enable(); map.keyboard.enableRotation();
     map.setProjection({ type:'globe' });
-    map.setTerrain({ source:'terrain', exaggeration:+exag.value });
+    map.setTerrain({ source:RL.ter, exaggeration:+exag.value });
   } else {
     map.setTerrain(null);
     map.setProjection({ type:'mercator' });
@@ -426,7 +427,7 @@ function setSea(metres){
   drainOut.textContent = seaLevel ? `−${fmt.format(-seaLevel)} م` : '0 م';
   note.textContent = seaLevel ? `سطح الماء أخفض من اليوم بـ ${fmt.format(-seaLevel)} م` : 'مستوى البحر الحالي';
   drawLegend(); showElevation();
-  if (!pendingPaint){ pendingPaint=true; requestAnimationFrame(()=>{ pendingPaint=false; map.setPaintProperty('relief','color-relief-color',reliefColor()); }); }
+  if (!pendingPaint){ pendingPaint=true; requestAnimationFrame(()=>{ pendingPaint=false; map.setPaintProperty(RL.relief,'color-relief-color',reliefColor()); }); }
 }
 let anim=null;
 function stopAnim(){ if(anim){ cancelAnimationFrame(anim.id); anim=null; } playBtn.textContent='▶ تشغيل'; }
@@ -473,8 +474,8 @@ function nightRing(sun, h){
   ring.push(ring[0]);
   return ring;
 }
-// civil → astronomical twilight in 1.5° steps; stacked fills give a smooth, dark night side
-const BANDS=Array.from({length:13},(_,i)=>[0.5-i*1.5, 0.072]);
+// 38 thin twilight bands from +0.5° down to −18°; each darkens a little, so the night side fades in smoothly
+const BANDS=Array.from({length:38},(_,i)=>0.5-i*0.5);
 let timeOffset=0, sunOn=true;
 const whenEl=document.getElementById('when'), hourIn=document.getElementById('hour'), hourOut=document.getElementById('hourOut'), sunNote=document.getElementById('sunNote');
 const dtFmt=new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{ weekday:'short', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
@@ -485,17 +486,13 @@ function drawSun(){
   const h=Math.round(timeOffset/60*10)/10;
   hourOut.textContent = timeOffset===0 ? 'الآن' : `${h>0?'+':'−'}${Math.abs(h)} س`;
   sunNote.textContent=`الشمس عموديّة فوق ${Math.abs(sun.lat).toFixed(1)}° ${sun.lat>=0?'N':'S'}، ${Math.abs(sun.lng).toFixed(1)}° ${sun.lng>=0?'E':'W'}`;
-  BANDS.forEach(([h],i)=>{
-    const src=map.getSource('night'+i);
-    if (src) src.setData({ type:'Feature', properties:{}, geometry:{ type:'Polygon', coordinates:[nightRing(sun,h)] } });
-  });
+  const ns=map.getSource('night');
+  if (ns) ns.setData({ type:'FeatureCollection', features: BANDS.map(h=>({ type:'Feature', properties:{}, geometry:{ type:'Polygon', coordinates:[nightRing(sun,h)] } })) });
   const sp=map.getSource('sunpt'); if (sp) sp.setData({ type:'Point', coordinates:[sun.lng,sun.lat] });
 }
 function addSunLayers(){
-  BANDS.forEach(([h,op],i)=>{
-    map.addSource('night'+i,{ type:'geojson', data:{ type:'FeatureCollection', features:[] } });
-    map.addLayer({ id:'night'+i, type:'fill', source:'night'+i, paint:{ 'fill-color':'#020614', 'fill-opacity':op, 'fill-antialias':false } });
-  });
+  map.addSource('night',{ type:'geojson', data:{ type:'FeatureCollection', features:[] }, tolerance:0 });
+  map.addLayer({ id:'night', type:'fill', source:'night', paint:{ 'fill-color':'#020614', 'fill-opacity':0.026, 'fill-antialias':false } });
   map.addSource('sunpt',{ type:'geojson', data:{ type:'FeatureCollection', features:[] } });
   map.addLayer({ id:'sunpt-glow', type:'circle', source:'sunpt', paint:{ 'circle-radius':14, 'circle-color':'#ffd46b', 'circle-opacity':0.25, 'circle-blur':0.8 } });
   map.addLayer({ id:'sunpt', type:'circle', source:'sunpt', paint:{ 'circle-radius':5, 'circle-color':'#ffd46b', 'circle-stroke-color':'#fff6dc', 'circle-stroke-width':1.5 } });
@@ -503,7 +500,7 @@ function addSunLayers(){
 }
 function setSunVisible(v){
   sunOn=v;
-  [...BANDS.map((_,i)=>'night'+i),'sunpt-glow','sunpt'].forEach(id=>map.getLayer(id)&&map.setLayoutProperty(id,'visibility',v?'visible':'none'));
+  ['night','sunpt-glow','sunpt'].forEach(id=>map.getLayer(id)&&map.setLayoutProperty(id,'visibility',v?'visible':'none'));
 }
 document.getElementById('sunOn').addEventListener('change',e=>setSunVisible(e.target.checked));
 hourIn.addEventListener('input',()=>{ stopDay(); timeOffset=+hourIn.value; drawSun(); });
@@ -569,31 +566,87 @@ async function loadPaleo(){
   })();
   return paleoLoading;
 }
-// bilinear sample of era k at lng/lat (grid rows run south→north, columns west→east)
+// smooth (Catmull-Rom bicubic) sample of era k at lng/lat; grid rows run south→north, columns west→east
+const cr=(p0,p1,p2,p3,t)=>p1+0.5*t*(p2-p0+t*(2*p0-5*p1+4*p2-p3+t*(3*(p1-p2)+p3-p0)));
 function paleoAt(k,lng,lat){
   const fr=Math.max(0,Math.min(PH-1.0001,lat+90)), fc=((lng+180)%360+360)%360;
-  const r0=Math.floor(fr), c0=Math.floor(fc)%PW, c1=(c0+1)%PW, tr=fr-r0, tc=fc-Math.floor(fc), o=k*PW*PH;
-  const g=(r,c)=>PALEO[o+r*PW+c];
-  return (g(r0,c0)*(1-tc)+g(r0,c1)*tc)*(1-tr)+(g(r0+1,c0)*(1-tc)+g(r0+1,c1)*tc)*tr;
+  const r1=Math.floor(fr), c1=Math.floor(fc), tr=fr-r1, tc=fc-c1, o=k*PW*PH, rows=[0,0,0,0];
+  for (let j=-1;j<=2;j++){
+    const r=Math.max(0,Math.min(PH-1,r1+j)), b=o+r*PW;
+    rows[j+1]=cr(PALEO[b+((c1-1+PW)%PW)],PALEO[b+(c1%PW)],PALEO[b+((c1+1)%PW)],PALEO[b+((c1+2)%PW)],tc);
+  }
+  return cr(rows[0],rows[1],rows[2],rows[3],tr);
 }
 // serve the chosen era as Terrarium-encoded elevation tiles, so colours, shading and 3D all just work
-const tileCanvas = typeof OffscreenCanvas!=='undefined' ? new OffscreenCanvas(256,256) : Object.assign(document.createElement('canvas'),{width:256,height:256});
+// minimal PNG writer: RGB, stored (uncompressed) deflate — ~1 ms instead of seconds through canvas
+const CRC=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xedb88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8,s,e){ let c=0xffffffff; for(let i=s;i<e;i++) c=CRC[(c^u8[i])&255]^(c>>>8); return (c^0xffffffff)>>>0; }
+function encodePNG(rgb,w,h){
+  const row=w*3+1, raw=row*h, nBlocks=Math.ceil(raw/65535);
+  const idatLen=2+raw+nBlocks*5+4, out=new Uint8Array(8+25+12+idatLen+12), dv=new DataView(out.buffer);
+  out.set([137,80,78,71,13,10,26,10],0);
+  let o=8;
+  const chunk=(type,len,fill)=>{ dv.setUint32(o,len); const s=o+4; out.set([...type].map(c=>c.charCodeAt(0)),s); fill(s+4); dv.setUint32(s+4+len, crc32(out,s,s+4+len)); o=s+8+len; };
+  chunk('IHDR',13,p=>{ dv.setUint32(p,w); dv.setUint32(p+4,h); out.set([8,2,0,0,0],p+8); });
+  chunk('IDAT',idatLen,p=>{
+    out[p]=0x78; out[p+1]=0x01; let q=p+2, a=1, b=0, done=0;
+    const byteAt=i=>{ const r=(i/row)|0, c=i-r*row; return c===0 ? 0 : rgb[r*w*3+c-1]; };
+    while(done<raw){
+      const n=Math.min(65535,raw-done), last=done+n>=raw;
+      out[q]=last?1:0; out[q+1]=n&255; out[q+2]=n>>8; out[q+3]=(~n)&255; out[q+4]=((~n)>>8)&255; q+=5;
+      for(let i=0;i<n;i++){ const v=byteAt(done+i); out[q++]=v; a=(a+v)%65521; b=(b+a)%65521; }
+      done+=n;
+    }
+    dv.setUint32(q,((b<<16)|a)>>>0);
+  });
+  chunk('IEND',0,()=>{});
+  return out.buffer;
+}
+const tileMemo=new Map();
 maplibregl.addProtocol('paleo', async (params)=>{
-  const m=params.url.match(/paleo:\/\/(\d+)\/(\d+)\/(\d+)\/(\d+)/); const k=+m[1], z=+m[2], x=+m[3], y=+m[4];
+  let p=tileMemo.get(params.url);
+  if (!p){ p=paleoTile(params.url); tileMemo.set(params.url,p); if (tileMemo.size>400) tileMemo.delete(tileMemo.keys().next().value); }
+  return { data: (await p).slice(0) };
+});
+async function paleoTile(url){
+  const m=url.match(/paleo:\/\/(\d+)\/(\d+)\/(\d+)\/(\d+)/); const k=+m[1], z=+m[2], x=+m[3], y=+m[4];
   await loadPaleo();
-  const n=2**z, img=new ImageData(256,256), d=img.data;
+  const n=2**z, d=new Uint8Array(256*256*3);
   for (let py=0;py<256;py++){
     const lat=Math.atan(Math.sinh(Math.PI*(1-2*(y+(py+0.5)/256)/n)))*R2D;
     for (let px=0;px<256;px++){
       const lng=(x+(px+0.5)/256)/n*360-180;
-      const v=paleoAt(k,lng,lat)+32768, i=(py*256+px)*4;
-      d[i]=Math.floor(v/256); d[i+1]=Math.floor(v)%256; d[i+2]=Math.floor((v%1)*256); d[i+3]=255;
+      const v=paleoAt(k,lng,lat)+32768, i=(py*256+px)*3;
+      d[i]=Math.floor(v/256); d[i+1]=Math.floor(v)%256; d[i+2]=Math.floor((v%1)*256);
     }
   }
-  const ctx=tileCanvas.getContext('2d'); ctx.putImageData(img,0,0);
-  const blob = tileCanvas.convertToBlob ? await tileCanvas.convertToBlob({type:'image/png'}) : await new Promise(r=>tileCanvas.toBlob(r,'image/png'));
-  return { data: await blob.arrayBuffer() };
-});
+  return encodePNG(d,256,256);
+}
+
+let gen=0, pending=null;
+function dropSet(L){
+  [L.shade,L.relief].forEach(id=>map.getLayer(id)&&map.removeLayer(id));
+  [L.src,L.ter].forEach(id=>map.getSource(id)&&map.removeSource(id));
+}
+function swapElevation(url, maxzoom, attribution){
+  if (pending){ dropSet(pending.L); map.off('sourcedata', pending.onData); pending=null; }
+  const g=++gen, L={ relief:'relief'+g, shade:'shade'+g, src:'rel'+g, ter:'ter'+g };
+  const def={ type:'raster-dem', tiles:[url], tileSize:256, maxzoom, encoding:'terrarium' };
+  map.addSource(L.src, attribution ? { ...def, attribution } : def);
+  map.addSource(L.ter, def);
+  const shadePaint={}; ['hillshade-exaggeration','hillshade-shadow-color','hillshade-highlight-color','hillshade-accent-color','hillshade-illumination-anchor'].forEach(k=>shadePaint[k]=map.getPaintProperty(RL.shade,k));
+  map.addLayer({ id:L.relief, type:'color-relief', source:L.src, paint:{ 'color-relief-color': reliefColor() } }, RL.relief);
+  map.addLayer({ id:L.shade, type:'hillshade', source:L.src, paint:shadePaint }, RL.relief);
+  const promote=()=>{
+    map.off('sourcedata', onData); pending=null;
+    if (is3D) map.setTerrain({ source:L.ter, exaggeration:+exag.value });
+    const old={...RL}; Object.assign(RL,L); dropSet(old);
+    map.moveLayer(RL.relief, 'night'); map.moveLayer(RL.shade, 'night');
+  };
+  const onData=e=>{ if (e.sourceId===L.src && map.isSourceLoaded(L.src)) promote(); };
+  pending={ L, onData };
+  map.on('sourcedata', onData);
+}
 
 const eraIn=document.getElementById('era'), eraName=document.getElementById('eraName'), eraEn=document.getElementById('eraEn'), eraMa=document.getElementById('eraMa'), eraNote=document.getElementById('eraNote'), eraStatus=document.getElementById('eraStatus');
 let eraTimer=null;
@@ -609,8 +662,7 @@ async function setEra(k){
   if (k>0 && !PALEO){ eraStatus.textContent='جارٍ تحميل الخرائط القديمة (3 ميغابايت)…'; try{ await loadPaleo(); }catch(e){ eraStatus.textContent='تعذّر تحميل الخرائط القديمة'; return; } }
   if (eraIdx!==k) return;
   eraStatus.textContent = k>0 ? 'مواقع القارات كما كانت في ذلك الزمن' : '';
-  const tiles = k>0 ? [`paleo://${k}/{z}/{x}/{y}`] : [TILES];
-  map.getSource('relief').setTiles(tiles); map.getSource('terrain').setTiles(tiles);
+  swapElevation(k>0 ? `paleo://${k}/{z}/{x}/{y}` : TILES, k>0 ? 6 : 15, k>0 ? null : ATTRIB);
   chips.hidden = k>0;
   if (current) select(current.lng,current.lat,current.name,current.z);
 }
@@ -622,7 +674,12 @@ eraBtn.addEventListener('click',()=>{
   if (eraTimer) return stopEra();
   eraBtn.textContent='⏸ إيقاف';
   let k = eraIdx>=108 ? 0 : eraIdx;
-  const tick=async()=>{ k++; await setEra(k); if (k>=108 || !eraTimer){ stopEra(); return; } eraTimer=setTimeout(tick, 1100); };
+  const tick=async()=>{
+    k++; await setEra(k);
+    if (k>=108 || !eraTimer){ stopEra(); return; }
+    const t0=performance.now();
+    map.once('idle',()=>{ if(eraTimer) eraTimer=setTimeout(tick, Math.max(150, 900-(performance.now()-t0))); });
+  };
   eraTimer=setTimeout(tick, 10);
 });
 
