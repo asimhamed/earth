@@ -62,6 +62,7 @@ header p{margin:0;color:var(--dim);font-size:.8rem;text-shadow:0 1px 3px #000}
   background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 8px 7px;cursor:pointer}
 .tool svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .tool:hover{color:var(--ink)}
+.tool:disabled{opacity:.45;cursor:progress}
 .tool[aria-pressed="true"]{color:#1d1404;background:var(--accent);border-color:var(--accent)}
 
 .card{position:fixed;z-index:3;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 86px);
@@ -323,16 +324,16 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
   <p class="src">الصورة: NASA Black Marble (VIIRS)، عبر NASA GIBS.</p>
 </section>
 <nav class="dock" aria-label="الأدوات">
-  <button type="button" class="tool" id="tool-places" aria-pressed="false" aria-controls="card-places"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>أماكن</span></button>
-  <button type="button" class="tool" id="tool-view" aria-pressed="false" aria-controls="card-view"><svg viewBox="0 0 24 24"><path d="M3 18l6-9 4 6 3-4 5 7z"/><path d="M3 21h18"/></svg><span>طريقة العرض</span></button>
-  <button type="button" class="tool" id="tool-water" aria-pressed="false" aria-controls="card-water"><svg viewBox="0 0 24 24"><path d="M2 9c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 14c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 19c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/></svg><span>مستوى الماء</span></button>
-  <button type="button" class="tool" id="tool-day" aria-pressed="false" aria-controls="card-day"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg><span>الليل والنهار</span></button>
-  <button type="button" class="tool" id="tool-era" aria-pressed="false" aria-controls="card-era"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l-3 2"/><path d="M3.5 4.5v4h4"/></svg><span>رحلة عبر الزمن</span></button>
-  <button type="button" class="tool" id="tool-sun" aria-pressed="false" aria-controls="card-sun"><svg viewBox="0 0 24 24"><circle cx="7" cy="12" r="4"/><circle cx="19" cy="12" r="1.8"/><path d="M13 12h2.5M7 5V4M7 20v-1M2 12h1M3.5 8.5l-.7-.7M3.5 15.5l-.7.7"/></svg><span>قرب الشمس</span></button>
-  <button type="button" class="tool" id="tool-sat" aria-pressed="false" aria-controls="card-sat"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M3 5l4 4M17 15l4 4M15 9l2-2M7 17l2-2M2 9l3-3 3 3-3 3zM16 18l3-3 3 3-3 3z"/></svg><span>صور الأقمار</span></button>
-  <button type="button" class="tool" id="tool-clouds" aria-pressed="false" aria-controls="card-clouds"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 18z"/></svg><span>الغيوم</span></button>
-  <button type="button" class="tool" id="tool-quakes" aria-pressed="false" aria-controls="card-quakes"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 3 12 3-9 2 3h6"/></svg><span>الزلازل الحيّة</span></button>
-  <button type="button" class="tool" id="tool-lights" aria-pressed="false" aria-controls="card-lights"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/><circle cx="17" cy="5" r=".8" fill="currentColor"/><circle cx="20" cy="9" r=".8" fill="currentColor"/></svg><span>أضواء المدن</span></button>
+  <button type="button" class="tool" disabled id="tool-places" aria-pressed="false" aria-controls="card-places"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>أماكن</span></button>
+  <button type="button" class="tool" disabled id="tool-view" aria-pressed="false" aria-controls="card-view"><svg viewBox="0 0 24 24"><path d="M3 18l6-9 4 6 3-4 5 7z"/><path d="M3 21h18"/></svg><span>طريقة العرض</span></button>
+  <button type="button" class="tool" disabled id="tool-water" aria-pressed="false" aria-controls="card-water"><svg viewBox="0 0 24 24"><path d="M2 9c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 14c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 19c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/></svg><span>مستوى الماء</span></button>
+  <button type="button" class="tool" disabled id="tool-day" aria-pressed="false" aria-controls="card-day"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg><span>الليل والنهار</span></button>
+  <button type="button" class="tool" disabled id="tool-era" aria-pressed="false" aria-controls="card-era"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l-3 2"/><path d="M3.5 4.5v4h4"/></svg><span>رحلة عبر الزمن</span></button>
+  <button type="button" class="tool" disabled id="tool-sun" aria-pressed="false" aria-controls="card-sun"><svg viewBox="0 0 24 24"><circle cx="7" cy="12" r="4"/><circle cx="19" cy="12" r="1.8"/><path d="M13 12h2.5M7 5V4M7 20v-1M2 12h1M3.5 8.5l-.7-.7M3.5 15.5l-.7.7"/></svg><span>قرب الشمس</span></button>
+  <button type="button" class="tool" disabled id="tool-sat" aria-pressed="false" aria-controls="card-sat"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M3 5l4 4M17 15l4 4M15 9l2-2M7 17l2-2M2 9l3-3 3 3-3 3zM16 18l3-3 3 3-3 3z"/></svg><span>صور الأقمار</span></button>
+  <button type="button" class="tool" disabled id="tool-clouds" aria-pressed="false" aria-controls="card-clouds"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 18z"/></svg><span>الغيوم</span></button>
+  <button type="button" class="tool" disabled id="tool-quakes" aria-pressed="false" aria-controls="card-quakes"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 3 12 3-9 2 3h6"/></svg><span>الزلازل الحيّة</span></button>
+  <button type="button" class="tool" disabled id="tool-lights" aria-pressed="false" aria-controls="card-lights"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/><circle cx="17" cy="5" r=".8" fill="currentColor"/><circle cx="20" cy="9" r=".8" fill="currentColor"/></svg><span>أضواء المدن</span></button>
 </nav>
 <div id="err" hidden></div>
 
@@ -549,7 +550,9 @@ function showTool(k){
 TOOL_IDS.forEach(t=>document.getElementById('tool-'+t).addEventListener('click',()=>showTool(t)));
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>showTool(openTool)));
 // keep the globe centred in the space the readout, card and dock leave free
+let ready=false;   // the map's style and first frame are in; tools stay disabled until then
 function fitPadding(){
+  if (!ready) return;
   const dock=document.querySelector('.dock').getBoundingClientRect(), ro=document.querySelector('.readout-card').getBoundingClientRect();
   const card = openTool ? document.getElementById('card-'+openTool).getBoundingClientRect() : null;
   const wide = innerWidth>=760;
@@ -1050,6 +1053,7 @@ Object.keys(QFEEDS).forEach(id=>document.getElementById(id).addEventListener('cl
 }));
 
 map.on('load',()=>{
+  ready=true; document.querySelectorAll('.tool').forEach(b=>b.disabled=false);
   addSunLayers(); applyVisibility();
   fitPadding();
   select(PLACES[0].lng,PLACES[0].lat,PLACES[0].name,10);
