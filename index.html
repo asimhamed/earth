@@ -163,11 +163,14 @@ const SEA  = [[-11000,'#06163a'],[-7000,'#0b2654'],[-5000,'#123a73'],[-3000,'#1b
 const LAND = [[0,'#5f8f4e'],[200,'#86a35a'],[600,'#b9b56f'],[1200,'#c9a26a'],[2000,'#a77a52'],[3200,'#8a6a5c'],[4500,'#b9b0aa'],[5600,'#f4f2ef']];
 
 let seaLevel = 0;   // metres below today's sea level that the water surface has dropped to (≤ 0)
-// Water: depth below the current surface. Exposed ground: the land ramp stretched from the
-// new shoreline up to the highest peaks, so drained seabed reads as ordinary land.
+// Colours are elevation bands, not vegetation. Today's land keeps its colours whatever the
+// water does; seabed that the draining exposes gets deeper greens the lower it lies.
+const BASIN = ['#2c5230','#3a6638','#4b7a43'];
 function rampStops(S){
-  const span=(5600 - S)/5600;
-  return [...SEA.map(([h,c])=>[h+S,c]), ...LAND.map(([h,c])=>[S + h*span, c])];
+  const sea = SEA.map(([h,c])=>[h+S,c]);
+  if (S >= 0) return [...sea, ...LAND];
+  const lo = S, band = [[lo, BASIN[0]], [lo*0.6, BASIN[1]], [lo*0.25, BASIN[2]]].filter(([h])=>h<0);
+  return [...sea, ...band, ...LAND];
 }
 const reliefColor = () => ['interpolate',['linear'],['elevation'], ...rampStops(seaLevel).flat()];
 
