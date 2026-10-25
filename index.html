@@ -88,7 +88,8 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
 .head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .head .t{font-size:.8rem;color:var(--dim)}
 .water{display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
-.wbtns{display:flex;gap:6px}
+.wbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.slider-ends{display:flex;justify-content:space-between;direction:ltr;font-size:.66rem;color:var(--dim);margin-top:-6px;padding-inline:4.6em 3.6em}
 .icon{font:inherit;font-size:.8rem;color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
 .icon.primary{background:rgba(74,163,207,.18);border-color:rgba(124,198,221,.55);color:#cfeefa}
 .icon:hover{border-color:rgba(242,181,68,.5)}
@@ -160,15 +161,17 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
 
   <div class="pane water" id="pane-water" role="tabpanel">
     <div class="row">
-      <label for="drain">سحب الماء</label>
-      <input type="range" id="drain" min="0" max="11000" step="25" value="0">
+      <label for="drain">مستوى الماء</label>
+      <input type="range" id="drain" min="-11000" max="9000" step="25" value="0" dir="ltr">
       <output id="drainOut" for="drain">0 م</output>
     </div>
+    <div class="slider-ends" aria-hidden="true"><span>تصريف</span><span>إغراق</span></div>
     <div class="head">
       <span class="t" id="drainNote">مستوى البحر الحالي</span>
       <div class="wbtns">
-        <button type="button" class="icon primary" id="play">▶ تشغيل</button>
-        <button type="button" class="icon" id="reset">إرجاع الماء</button>
+        <button type="button" class="icon primary" id="play">▼ تصريف</button>
+        <button type="button" class="icon primary" id="flood">▲ إغراق</button>
+        <button type="button" class="icon" id="reset">إرجاع</button>
       </div>
     </div>
   </div>
@@ -222,29 +225,38 @@ const SEA  = [[-11000,'#06163a'],[-7000,'#0b2654'],[-5000,'#123a73'],[-3000,'#1b
 const LAND = [[0,'#5f8f4e'],[200,'#86a35a'],[600,'#b9b56f'],[1200,'#c9a26a'],[2000,'#a77a52'],[3200,'#8a6a5c'],[4500,'#b9b0aa'],[5600,'#f4f2ef']];
 
 const RL={ relief:'relief', shade:'shade', src:'relief', ter:'terrain' };   // the layers and sources on screen now
-let seaLevel = 0;   // metres below today's sea level that the water surface has dropped to (≤ 0)
+let seaLevel = 0;   // metres the water surface sits above (+) or below (−) today's sea level
 // Colours are elevation bands, not vegetation. Today's land keeps its colours whatever the
 // water does; seabed that the draining exposes gets deeper greens the lower it lies.
 const BASIN = ['#2c5230','#3a6638','#4b7a43'];
+const hex2=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16));
+function landColorAt(h){
+  for (let i=1;i<LAND.length;i++) if (h<=LAND[i][0]){
+    const [h0,c0]=LAND[i-1], [h1,c1]=LAND[i], t=(h-h0)/(h1-h0), a=hex2(c0), b=hex2(c1);
+    return '#'+a.map((v,j)=>Math.round(v+(b[j]-v)*t).toString(16).padStart(2,'0')).join('');
+  }
+  return LAND[LAND.length-1][1];
+}
 function rampStops(S){
   const sea = SEA.map(([h,c])=>[h+S,c]);
-  if (S >= 0) return [...sea, ...LAND];
+  if (S === 0) return [...sea, ...LAND];
+  if (S > 0) return [...sea, [S, landColorAt(S)], ...LAND.filter(([h])=>h>S)];   // flooding: only peaks above the water stay land
   const lo = S, band = [[lo, BASIN[0]], [lo*0.6, BASIN[1]], [lo*0.25, BASIN[2]]].filter(([h])=>h<0);
   return [...sea, ...band, ...LAND];
 }
 const reliefColor = () => ['interpolate',['linear'],['elevation'], ...rampStops(seaLevel).flat()];
 
-const LO=-11, HI=6, pos=v=>((v-LO)/(HI-LO)*100).toFixed(2)+'%';
+const LO=-11, HI=9, pos=v=>((v-LO)/(HI-LO)*100).toFixed(2)+'%';
 function drawLegend(){
   const stops=rampStops(seaLevel).map(([h,c])=>`${c} ${pos(h/1000)}`);
   document.getElementById('bar').style.background=`linear-gradient(to right, ${stops.join(',')})`;
-  document.getElementById('wl').style.left=pos(seaLevel/1000);
+  document.getElementById('wl').style.left=pos(Math.max(LO,Math.min(HI,seaLevel/1000)));
 }
 (function ticks(){
   const t=document.getElementById('ticks');
-  [[-10,'−10'],[-6,'−6'],[-3,'−3'],[0,'0'],[3,'+3'],[6,'+6']].forEach(([v,l])=>{
+  [[-10,'−10'],[-6,'−6'],[-3,'−3'],[0,'0'],[3,'+3'],[6,'+6'],[9,'+9']].forEach(([v,l])=>{
     const s=document.createElement('span'); s.textContent=l; s.style.left=pos(v);
-    if(v===-10) s.style.transform='translateX(-20%)'; if(v===6) s.style.transform='translateX(-90%)';
+    if(v===-10) s.style.transform='translateX(-20%)'; if(v===9) s.style.transform='translateX(-90%)';
     t.appendChild(s);
   });
   drawLegend();
@@ -339,7 +351,7 @@ let selToken=0, lastElev=null;
 function showElevation(){
   const val=document.getElementById('elevVal'), box=document.getElementById('elevBox'), lbl=document.getElementById('elevLbl');
   if (lastElev===null) return;
-  const m=lastElev, drained = seaLevel < 0;
+  const m=lastElev, drained = seaLevel !== 0;
   const orig = drained ? `<small class="orig">الارتفاع الأصلي: ${m<0?'−':''}${fmt.format(Math.abs(m))} م</small>` : '';
   if (m < seaLevel){
     box.className='elev water'; val.innerHTML=`${fmt.format(Math.round(seaLevel-m))}<small>م</small>`;
@@ -421,29 +433,44 @@ b2.addEventListener('click',()=>setView(false));
 const drain=document.getElementById('drain'), drainOut=document.getElementById('drainOut'), note=document.getElementById('drainNote');
 const playBtn=document.getElementById('play'), resetBtn=document.getElementById('reset');
 let pendingPaint=false;
-function setSea(metres){
-  seaLevel=-Math.max(0,Math.min(11000,metres));
-  drain.value=String(-seaLevel);
-  drainOut.textContent = seaLevel ? `−${fmt.format(-seaLevel)} م` : '0 م';
-  note.textContent = seaLevel ? `سطح الماء أخفض من اليوم بـ ${fmt.format(-seaLevel)} م` : 'مستوى البحر الحالي';
+// highest ground in the world on show: Everest today, or the top of the chosen ancient map
+const eraPeak=[];
+function peakNow(){
+  if (typeof eraIdx==='undefined' || eraIdx===0 || !PALEO) return 8849;
+  if (eraPeak[eraIdx]===undefined){ let mx=-1e9; const o=eraIdx*PW*PH; for (let i=0;i<PW*PH;i++) if (PALEO[o+i]>mx) mx=PALEO[o+i]; eraPeak[eraIdx]=mx; }
+  return eraPeak[eraIdx];
+}
+function setSea(level){
+  seaLevel=Math.max(-11000,Math.min(9000,Math.round(level)));
+  drain.value=String(seaLevel);
+  const a=fmt.format(Math.abs(seaLevel));
+  drainOut.textContent = seaLevel>0 ? `+${a} م` : seaLevel<0 ? `−${a} م` : '0 م';
+  note.textContent = seaLevel===0 ? 'مستوى البحر الحالي'
+    : seaLevel<0 ? `سطح الماء أخفض من اليوم بـ ${a} م`
+    : seaLevel>=peakNow() ? 'الأرض كلها تحت الماء، حتى أعلى قمة'
+    : `سطح الماء أعلى من اليوم بـ ${a} م`;
   drawLegend(); showElevation();
   if (!pendingPaint){ pendingPaint=true; requestAnimationFrame(()=>{ pendingPaint=false; map.setPaintProperty(RL.relief,'color-relief-color',reliefColor()); }); }
 }
+const floodBtn=document.getElementById('flood');
 let anim=null;
-function stopAnim(){ if(anim){ cancelAnimationFrame(anim.id); anim=null; } playBtn.textContent='▶ تشغيل'; }
-function startAnim(){
-  if (-seaLevel>=11000) setSea(0);
-  const from=-seaLevel, t0=performance.now(), rate=11000/30000; // the whole column in 30 s
-  playBtn.textContent='⏸ إيقاف';
+function stopAnim(){ if(anim){ cancelAnimationFrame(anim.id); anim=null; } playBtn.textContent='▼ تصريف'; floodBtn.textContent='▲ إغراق'; }
+function animateTo(target, btn){
+  const dir=Math.sign(target-seaLevel) || 1;
+  if (seaLevel===target) setSea(0);
+  const from=seaLevel, t0=performance.now(), rate=11000/30000;   // about 370 m of water per second
+  btn.textContent='⏸ إيقاف';
   const step=now=>{
-    const d=from + (now-t0)*rate;
-    setSea(d);
-    if (d>=11000){ stopAnim(); return; }
+    const v=from + dir*(now-t0)*rate;
+    const doneNow = dir>0 ? v>=target : v<=target;
+    setSea(doneNow ? target : v);
+    if (doneNow){ stopAnim(); return; }
     anim.id=requestAnimationFrame(step);
   };
-  anim={ id:requestAnimationFrame(step) };
+  anim={ id:requestAnimationFrame(step), btn };
 }
-playBtn.addEventListener('click',()=> anim ? stopAnim() : startAnim());
+playBtn.addEventListener('click',()=>{ const was=anim&&anim.btn; stopAnim(); if (was!==playBtn) animateTo(-11000, playBtn); });
+floodBtn.addEventListener('click',()=>{ const was=anim&&anim.btn; stopAnim(); if (was!==floodBtn) animateTo(Math.min(9000, Math.ceil(peakNow()/100)*100+100), floodBtn); });
 resetBtn.addEventListener('click',()=>{ stopAnim(); setSea(0); });
 drain.addEventListener('input',()=>{ stopAnim(); setSea(+drain.value); });
 
@@ -665,6 +692,7 @@ async function setEra(k){
   swapElevation(k>0 ? `paleo://${k}/{z}/{x}/{y}` : TILES, k>0 ? 6 : 15, k>0 ? null : ATTRIB);
   chips.hidden = k>0;
   if (current) select(current.lng,current.lat,current.name,current.z);
+  setSea(seaLevel);
 }
 eraIn.addEventListener('input',()=>{ stopEra(); setEra(+eraIn.value); });
 document.getElementById('eraNow').addEventListener('click',()=>{ stopEra(); setEra(0); });
