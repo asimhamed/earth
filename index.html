@@ -180,7 +180,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
   </div>
 </section>
 <section class="card" id="card-water" aria-labelledby="h-water" hidden>
-  <div class="card-h"><div><h2 id="h-water">مستوى الماء</h2><p>صرّف المحيطات لترى قاعها، أو ارفع الماء لين يغطي الجبال.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="card-h"><div><h2 id="h-water">مستوى الماء</h2><p>صرّف المحيطات لترى قاعها، أو ارفع الماء لين يغطي الجبال. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
   <div class="row">
     <label for="drain">المستوى</label>
     <input type="range" id="drain" min="-11000" max="9000" step="25" value="0" dir="ltr">
@@ -197,7 +197,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
   </div>
 </section>
 <section class="card" id="card-day" aria-labelledby="h-day" hidden>
-  <div class="card-h"><div><h2 id="h-day">الليل والنهار</h2><p>إضاءة الشمس الحقيقية على الأرض الآن، وتقدر تقدّم الوقت أو تؤخره.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="card-h"><div><h2 id="h-day">الليل والنهار</h2><p>إضاءة الشمس الحقيقية على الأرض الآن، وتقدر تقدّم الوقت أو تؤخره. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
   <div class="head">
     <span class="when" id="when">—</span>
     <label class="check" for="sunOn"><input type="checkbox" id="sunOn" checked> إظهار الليل</label>
@@ -216,7 +216,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
   </div>
 </section>
 <section class="card" id="card-era" aria-labelledby="h-era" hidden>
-  <div class="card-h"><div><h2 id="h-era">رحلة عبر الزمن</h2><p>شكل الأرض الحقيقي في 109 عصور، من اليوم إلى قبل 541 مليون سنة.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="card-h"><div><h2 id="h-era">رحلة عبر الزمن</h2><p>شكل الأرض الحقيقي في 109 عصور، من اليوم إلى قبل 541 مليون سنة. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
   <div class="era-name" id="eraName">اليوم</div>
   <div class="era-sub"><span id="eraEn">Present day</span><span class="ma" id="eraMa">الآن</span></div>
   <div class="row">
@@ -234,7 +234,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
   <p class="src">الخرائط القديمة: <a href="https://zenodo.org/records/5460860" target="_blank" rel="noopener">PALEOMAP PaleoDEMs، Scotese وWright 2018</a> (CC BY 4.0)، بدقة درجة واحدة.</p>
 </section>
 <section class="card" id="card-sun" aria-labelledby="h-sun" hidden>
-  <div class="card-h"><div><h2 id="h-sun">قرب الشمس</h2><p>حرّك الأرض أقرب للشمس أو أبعد، وشوف وش يصير للماء والجليد والحرارة.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="card-h"><div><h2 id="h-sun">قرب الشمس</h2><p>حرّك الأرض أقرب للشمس أو أبعد، وشوف وش يصير للماء والجليد والحرارة. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
   <div class="row">
     <label for="dist">المسافة</label>
     <input type="range" id="dist" min="0.3" max="1.6" step="0.005" value="1" dir="ltr">
@@ -442,8 +442,25 @@ exag.addEventListener('input',()=>{ exagOut.textContent='×'+(+exag.value); if(i
 // ---------- tools: one card open at a time ----------
 const TOOL_IDS=['places','view','water','day','era','sun'];
 let openTool=null;
+// Each tool owns its effect on the planet. Leaving a tool puts the planet back to today,
+// so tools never pile on top of each other: water, night, ancient maps and Sun distance stay separate.
+function leaveTool(t){
+  if (t==='water'){ stopAnim(); setSea(0); }
+  if (t==='day'){ stopDay(); timeOffset=0; hourIn.value='0'; drawSun(); }
+  if (t==='era'){ stopEra(); if (eraIdx!==0) setEra(0); }
+  if (t==='sun'){ stopDist(); setDist(1); }
+}
+function applyVisibility(){
+  const vis=(id,v)=>map.getLayer(id)&&map.setLayoutProperty(id,'visibility',v?'visible':'none');
+  vis('night', openTool==='day' && sunOn);
+  ['sunpt','sunpt-glow'].forEach(id=>vis(id, (openTool==='day' && sunOn) || openTool==='sun'));
+  ['heat','ice'].forEach(id=>vis(id, openTool==='sun'));
+}
 function showTool(k){
+  const prev=openTool;
   openTool = (k===openTool) ? null : k;
+  if (prev && prev!==openTool) leaveTool(prev);
+  applyVisibility();
   TOOL_IDS.forEach(t=>{ document.getElementById('tool-'+t).setAttribute('aria-pressed',String(t===openTool)); document.getElementById('card-'+t).hidden = t!==openTool; });
   fitPadding();
 }
@@ -580,10 +597,7 @@ function addSunLayers(){
   map.addLayer({ id:'sunpt', type:'circle', source:'sunpt', paint:{ 'circle-radius':5, 'circle-color':'#ffd46b', 'circle-stroke-color':'#fff6dc', 'circle-stroke-width':1.5 } });
   drawSun();
 }
-function setSunVisible(v){
-  sunOn=v;
-  ['night','sunpt-glow','sunpt'].forEach(id=>map.getLayer(id)&&map.setLayoutProperty(id,'visibility',v?'visible':'none'));
-}
+function setSunVisible(v){ sunOn=v; applyVisibility(); }
 document.getElementById('sunOn').addEventListener('change',e=>setSunVisible(e.target.checked));
 hourIn.addEventListener('input',()=>{ stopDay(); timeOffset=+hourIn.value; drawSun(); });
 document.getElementById('nowBtn').addEventListener('click',()=>{ stopDay(); timeOffset=0; hourIn.value='0'; drawSun(); });
@@ -752,7 +766,7 @@ async function setEra(k){
 eraIn.addEventListener('input',()=>{ stopEra(); setEra(+eraIn.value); });
 document.getElementById('eraNow').addEventListener('click',()=>{ stopEra(); setEra(0); });
 const eraBtn=document.getElementById('eraPlay');
-function stopEra(){ if(eraTimer){ clearTimeout(eraTimer); eraTimer=null; } eraBtn.textContent='▶ رحلة عبر الزمن'; }
+function stopEra(){ if(eraTimer){ clearTimeout(eraTimer); eraTimer=null; } eraBtn.textContent='▶ ابدأ الرحلة'; }
 eraBtn.addEventListener('click',()=>{
   if (eraTimer) return stopEra();
   eraBtn.textContent='⏸ إيقاف';
@@ -844,7 +858,7 @@ distBtn.addEventListener('click',()=>{
 });
 
 map.on('load',()=>{
-  addSunLayers();
+  addSunLayers(); applyVisibility();
   fitPadding();
   select(PLACES[0].lng,PLACES[0].lat,PLACES[0].name,10);
   if (!narrow) map.addControl(new maplibregl.NavigationControl({ visualizePitch:true, showCompass:true }), 'top-left');
