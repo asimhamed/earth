@@ -23,6 +23,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%;margin:0}
 body{background:var(--space);color:var(--ink);font-family:var(--f-body);font-size:14px;overflow:hidden}
 #map{position:fixed;inset:0;
@@ -81,6 +82,21 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
 .ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
 .cap{direction:ltr;display:flex;justify-content:space-between;font-size:.7rem;color:var(--dim)}
 
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:rgba(255,255,255,.04)}
+.seg button{font:inherit;font-family:var(--f-num);font-size:.8rem;color:var(--dim);background:none;border:0;border-radius:999px;padding:4px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#1d1404}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.head .t{font-size:.8rem;color:var(--dim)}
+.water{display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.wbtns{display:flex;gap:6px}
+.icon{font:inherit;font-size:.8rem;color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.icon.primary{background:rgba(74,163,207,.18);border-color:rgba(124,198,221,.55);color:#cfeefa}
+.icon:hover{border-color:rgba(242,181,68,.5)}
+.more{display:flex;flex-direction:column;gap:12px}
+.row.off{opacity:.4;pointer-events:none}
+.bar{position:relative}
+.wl{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;border-radius:1px;box-shadow:0 0 0 1px rgba(0,0,0,.5);transform:translateX(-1px);transition:left .1s linear}
+.elev small.orig{display:block;font-size:.7rem;color:var(--dim);margin-top:2px;font-family:var(--f-body)}
 .pin{width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid #fff3d6;box-shadow:0 0 0 6px rgba(242,181,68,.25),0 1px 4px rgba(0,0,0,.6)}
 #err{position:fixed;inset:auto 16px 50% 16px;text-align:center;color:#ffb4a6;z-index:4}
 </style>
@@ -99,16 +115,40 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
     <div class="coords" id="coords">—</div>
     <div class="elev land" id="elevBox"><b id="elevVal">…</b><span id="elevLbl">فوق سطح البحر</span></div>
   </div>
+  <div class="more" id="more">
   <div class="chips" id="chips" role="group" aria-label="أماكن جاهزة"></div>
-  <div class="row">
+  <div class="head">
+    <span class="t">طريقة العرض</span>
+    <div class="seg" role="group" aria-label="طريقة العرض">
+      <button type="button" id="v3d" aria-pressed="true">3D</button>
+      <button type="button" id="v2d" aria-pressed="false">2D</button>
+    </div>
+  </div>
+  <div class="row" id="exagRow">
     <label for="exag">تضخيم الارتفاعات</label>
     <input type="range" id="exag" min="1" max="6" step="0.5" value="1.5">
     <output id="exagOut" for="exag">×1.5</output>
   </div>
   <div class="legend">
-    <div class="bar" id="bar"></div>
+    <div class="bar" id="bar"><span class="wl" id="wl"></span></div>
     <div class="ticks" id="ticks"></div>
-    <div class="cap"><span>أعماق المحيطات (كم)</span><span>ارتفاع اليابسة (كم)</span></div>
+    <div class="cap"><span>تحت الماء (كم)</span><span>فوق الماء (كم)</span></div>
+  </div>
+  </div>
+  <div class="water">
+    <div class="row">
+      <label for="drain">سحب الماء</label>
+      <input type="range" id="drain" min="0" max="11000" step="25" value="0" aria-describedby="drainOut">
+      <output id="drainOut" for="drain">0 م</output>
+    </div>
+    <div class="head">
+      <span class="t" id="drainNote">مستوى البحر الحالي</span>
+      <div class="wbtns">
+        <button type="button" class="icon primary" id="play">▶ تشغيل</button>
+        <button type="button" class="icon" id="reset">إرجاع الماء</button>
+        <button type="button" class="icon" id="moreBtn" aria-controls="more" aria-expanded="true">الخيارات ▾</button>
+      </div>
+    </div>
   </div>
 </section>
 <div id="err" hidden></div>
@@ -122,22 +162,29 @@ const ATTRIB = '<a href="https://github.com/tilezen/joerd/blob/master/docs/attri
 const SEA  = [[-11000,'#06163a'],[-7000,'#0b2654'],[-5000,'#123a73'],[-3000,'#1b4f8f'],[-1000,'#2c76b3'],[-150,'#4aa3cf'],[-1,'#7cc6dd']];
 const LAND = [[0,'#5f8f4e'],[200,'#86a35a'],[600,'#b9b56f'],[1200,'#c9a26a'],[2000,'#a77a52'],[3200,'#8a6a5c'],[4500,'#b9b0aa'],[5600,'#f4f2ef']];
 
-let seaLevel = 0;   // metres; the water-draining step will move this
-function reliefColor(){
-  const stops = [...SEA.map(([h,c])=>[h+seaLevel,c]), ...LAND];
-  return ['interpolate',['linear'],['elevation'], ...stops.flat()];
+let seaLevel = 0;   // metres below today's sea level that the water surface has dropped to (≤ 0)
+// Water: depth below the current surface. Exposed ground: the land ramp stretched from the
+// new shoreline up to the highest peaks, so drained seabed reads as ordinary land.
+function rampStops(S){
+  const span=(5600 - S)/5600;
+  return [...SEA.map(([h,c])=>[h+S,c]), ...LAND.map(([h,c])=>[S + h*span, c])];
 }
+const reliefColor = () => ['interpolate',['linear'],['elevation'], ...rampStops(seaLevel).flat()];
 
-(function legend(){
-  const lo=-11, hi=6, pos=v=>((v-lo)/(hi-lo)*100).toFixed(2)+'%';
-  const stops=[...SEA,...LAND].map(([h,c])=>`${c} ${pos(h/1000)}`);
+const LO=-11, HI=6, pos=v=>((v-LO)/(HI-LO)*100).toFixed(2)+'%';
+function drawLegend(){
+  const stops=rampStops(seaLevel).map(([h,c])=>`${c} ${pos(h/1000)}`);
   document.getElementById('bar').style.background=`linear-gradient(to right, ${stops.join(',')})`;
+  document.getElementById('wl').style.left=pos(seaLevel/1000);
+}
+(function ticks(){
   const t=document.getElementById('ticks');
   [[-10,'−10'],[-6,'−6'],[-3,'−3'],[0,'0'],[3,'+3'],[6,'+6']].forEach(([v,l])=>{
     const s=document.createElement('span'); s.textContent=l; s.style.left=pos(v);
     if(v===-10) s.style.transform='translateX(-20%)'; if(v===6) s.style.transform='translateX(-90%)';
     t.appendChild(s);
   });
+  drawLegend();
 })();
 
 const narrow = innerWidth < 760;
@@ -225,7 +272,21 @@ PLACES.forEach((p,i)=>{
 const pinEl=document.createElement('div'); pinEl.className='pin';
 const pin=new maplibregl.Marker({ element:pinEl });
 const fmt=new Intl.NumberFormat('en-US');
-let selToken=0;
+let selToken=0, lastElev=null;
+function showElevation(){
+  const val=document.getElementById('elevVal'), box=document.getElementById('elevBox'), lbl=document.getElementById('elevLbl');
+  if (lastElev===null) return;
+  const m=lastElev, drained = seaLevel < 0;
+  const orig = drained ? `<small class="orig">الارتفاع الأصلي: ${m<0?'−':''}${fmt.format(Math.abs(m))} م</small>` : '';
+  if (m < seaLevel){
+    box.className='elev water'; val.innerHTML=`${fmt.format(Math.round(seaLevel-m))}<small>م</small>`;
+    lbl.innerHTML = (drained ? 'عمق تحت سطح الماء' : 'عمق تحت سطح البحر') + orig;
+  } else {
+    const h=Math.round(m-seaLevel);
+    box.className='elev land'; val.innerHTML=`${h<0?'−':''}${fmt.format(Math.abs(h))}<small>م</small>`;
+    lbl.innerHTML = (drained ? 'فوق سطح الماء' : 'فوق سطح البحر') + orig;
+  }
+}
 async function select(lng,lat,name,z){
   const tok=++selToken;
   pin.setLngLat([lng,lat]).addTo(map);
@@ -233,12 +294,11 @@ async function select(lng,lat,name,z){
   document.getElementById('coords').textContent = `${Math.abs(lat).toFixed(3)}° ${lat>=0?'N':'S'}   ${Math.abs(lng).toFixed(3)}° ${lng>=0?'E':'W'}`;
   chips.querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-pressed',String(PLACES[i].name===name)));
   const val=document.getElementById('elevVal'), box=document.getElementById('elevBox'), lbl=document.getElementById('elevLbl');
-  val.textContent='…';
+  val.textContent='…'; lastElev=null;
   try{
     const m=Math.round(await elevationBest(lng,lat,z));
     if (tok!==selToken) return;
-    if (m < seaLevel){ box.className='elev water'; val.innerHTML=`${fmt.format(Math.abs(m))}<small>م</small>`; lbl.textContent='عمق تحت سطح البحر'; }
-    else { box.className='elev land'; val.innerHTML=`${m<0?'−':''}${fmt.format(Math.abs(m))}<small>م</small>`; lbl.textContent='فوق سطح البحر'; }
+    lastElev=m; showElevation();
   }catch(e){ if(tok===selToken){ val.textContent='—'; lbl.textContent='تعذّر قراءة الارتفاع هنا'; } }
 }
 map.on('click', e => {
@@ -247,9 +307,75 @@ map.on('click', e => {
 });
 
 const exag=document.getElementById('exag'), exagOut=document.getElementById('exagOut');
-exag.addEventListener('input',()=>{ exagOut.textContent='×'+(+exag.value); map.setTerrain({ source:'terrain', exaggeration:+exag.value }); });
+let is3D=true;
+exag.addEventListener('input',()=>{ exagOut.textContent='×'+(+exag.value); if(is3D) map.setTerrain({ source:'terrain', exaggeration:+exag.value }); });
+
+// ---------- 3D / 2D ----------
+const moreEl=document.getElementById('more'), moreBtn=document.getElementById('moreBtn');
+function setMore(open){ moreEl.hidden=!open; moreBtn.setAttribute('aria-expanded',String(open)); moreBtn.textContent = open ? 'إخفاء ▴' : 'الخيارات ▾'; }
+moreBtn.addEventListener('click',()=>{ setMore(moreEl.hidden); fitPadding(); });
+// keep the globe centred in the space the panel leaves free on phones
+function fitPadding(){
+  const r=document.querySelector('.panel').getBoundingClientRect();
+  const bottom = innerWidth<760 ? Math.max(0, innerHeight - r.top) : 0;
+  map.easeTo({ padding:{ top:60, bottom, left:0, right: innerWidth>=760 ? 420 : 0 }, duration:300 });
+}
+setMore(!narrow);
+addEventListener('resize', fitPadding);
+
+const b3=document.getElementById('v3d'), b2=document.getElementById('v2d');
+function setView(three){
+  if (three===is3D) return;
+  is3D=three;
+  b3.setAttribute('aria-pressed',String(three)); b2.setAttribute('aria-pressed',String(!three));
+  document.getElementById('exagRow').classList.toggle('off',!three);
+  if (three){
+    map.setMaxPitch(80);
+    map.dragRotate.enable(); map.touchZoomRotate.enableRotation(); map.touchPitch.enable(); map.keyboard.enableRotation();
+    map.setProjection({ type:'globe' });
+    map.setTerrain({ source:'terrain', exaggeration:+exag.value });
+  } else {
+    map.setTerrain(null);
+    map.setProjection({ type:'mercator' });
+    map.dragRotate.disable(); map.touchZoomRotate.disableRotation(); map.touchPitch.disable(); map.keyboard.disableRotation();
+    map.jumpTo({ pitch:0, bearing:0 }); map.setMaxPitch(0);
+  }
+}
+b3.addEventListener('click',()=>setView(true));
+b2.addEventListener('click',()=>setView(false));
+
+// ---------- draining the water ----------
+const drain=document.getElementById('drain'), drainOut=document.getElementById('drainOut'), note=document.getElementById('drainNote');
+const playBtn=document.getElementById('play'), resetBtn=document.getElementById('reset');
+let pendingPaint=false;
+function setSea(metres){
+  seaLevel=-Math.max(0,Math.min(11000,metres));
+  drain.value=String(-seaLevel);
+  drainOut.textContent = seaLevel ? `−${fmt.format(-seaLevel)} م` : '0 م';
+  note.textContent = seaLevel ? `سطح الماء أخفض من اليوم بـ ${fmt.format(-seaLevel)} م` : 'مستوى البحر الحالي';
+  drawLegend(); showElevation();
+  if (!pendingPaint){ pendingPaint=true; requestAnimationFrame(()=>{ pendingPaint=false; map.setPaintProperty('relief','color-relief-color',reliefColor()); }); }
+}
+let anim=null;
+function stopAnim(){ if(anim){ cancelAnimationFrame(anim.id); anim=null; } playBtn.textContent='▶ تشغيل'; }
+function startAnim(){
+  if (-seaLevel>=11000) setSea(0);
+  const from=-seaLevel, t0=performance.now(), rate=11000/30000; // the whole column in 30 s
+  playBtn.textContent='⏸ إيقاف';
+  const step=now=>{
+    const d=from + (now-t0)*rate;
+    setSea(d);
+    if (d>=11000){ stopAnim(); return; }
+    anim.id=requestAnimationFrame(step);
+  };
+  anim={ id:requestAnimationFrame(step) };
+}
+playBtn.addEventListener('click',()=> anim ? stopAnim() : startAnim());
+resetBtn.addEventListener('click',()=>{ stopAnim(); setSea(0); });
+drain.addEventListener('input',()=>{ stopAnim(); setSea(+drain.value); });
 
 map.on('load',()=>{
+  fitPadding();
   select(PLACES[0].lng,PLACES[0].lat,PLACES[0].name,10);
   map.addControl(new maplibregl.NavigationControl({ visualizePitch:true, showCompass:true }), 'top-left');
 });
