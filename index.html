@@ -112,7 +112,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
 .cap{direction:ltr;display:flex;justify-content:space-between;font-size:.7rem;color:var(--dim)}
 
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:rgba(255,255,255,.04)}
-.seg button{font:inherit;font-family:var(--f-num);font-size:.8rem;color:var(--dim);background:none;border:0;border-radius:999px;padding:4px 14px;cursor:pointer}
+.seg button{font:inherit;font-size:.8rem;color:var(--dim);background:none;border:0;border-radius:999px;padding:4px 14px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent);color:#1d1404}
 .head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .head .t{font-size:.8rem;color:var(--dim)}
@@ -172,6 +172,17 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
     <label for="exag">تضخيم الارتفاعات</label>
     <input type="range" id="exag" min="1" max="6" step="0.5" value="1.5">
     <output id="exagOut" for="exag">×1.5</output>
+  </div>
+  <div class="head">
+    <span class="t">الجودة</span>
+    <div class="seg" role="group" aria-label="الجودة">
+      <button type="button" id="qHigh" aria-pressed="true">أعلى دقة</button>
+      <button type="button" id="qFast" aria-pressed="false">أكثر سلاسة</button>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><span>سرعة الحركة الآن</span><b id="fps">حرّك الكرة</b></div>
+    <div class="stat"><span>كرت الشاشة المستخدم</span><b id="gpu" style="font-size:.7rem;font-family:var(--f-body)">—</b></div>
   </div>
   <div class="legend">
     <div class="bar" id="bar"><span class="wl" id="wl"></span></div>
@@ -319,6 +330,9 @@ try { map = new maplibregl.Map({
   container:'map',
   center:[45, 22], zoom: narrow ? 1.05 : 1.9, pitch:0,
   maxPitch:80, attributionControl:{ compact:true },
+  // ask for the fast graphics card on dual-GPU laptops, and smooth (anti-aliased) edges
+  canvasContextAttributes:{ antialias:true, powerPreference:'high-performance' },
+  maxTileCacheSize:800, fadeDuration:0,
   style:{
     version:8,
     projection:{ type:'globe' },
@@ -856,6 +870,29 @@ distBtn.addEventListener('click',()=>{
   };
   distAnim=requestAnimationFrame(step);
 });
+
+// ---------- quality & frame rate ----------
+const qHigh=document.getElementById('qHigh'), qFast=document.getElementById('qFast');
+function setQuality(fast){
+  qHigh.setAttribute('aria-pressed',String(!fast)); qFast.setAttribute('aria-pressed',String(fast));
+  map.setPixelRatio(fast ? Math.min(1, devicePixelRatio) : devicePixelRatio);
+  if (map.getLayer(RL.shade)) map.setLayoutProperty(RL.shade,'visibility', fast ? 'none' : 'visible');
+}
+qHigh.addEventListener('click',()=>setQuality(false));
+qFast.addEventListener('click',()=>setQuality(true));
+// frames the map actually draws per second while it moves (capped by the screen's refresh rate)
+let frames=0, fpsT0=performance.now(), fpsShown=false;
+map.on('render',()=>{ frames++; });
+setInterval(()=>{
+  const now=performance.now(), f=Math.round(frames*1000/(now-fpsT0)); frames=0; fpsT0=now;
+  const el=document.getElementById('fps');
+  if (map.isMoving() || f>5){ el.textContent=f+' FPS'; fpsShown=true; } else if (!fpsShown) el.textContent='حرّك الكرة';
+}, 1000);
+try{
+  const gl=map.painter.context.gl, ext=gl.getExtension('WEBGL_debug_renderer_info');
+  const name=(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) || '';
+  document.getElementById('gpu').textContent = name.replace(/^ANGLE \((.*)\)$/,'$1').replace(/Direct3D.*$/,'').replace(/,\s*$/,'').slice(0,60) || '—';
+}catch(e){}
 
 map.on('load',()=>{
   addSunLayers(); applyVisibility();
