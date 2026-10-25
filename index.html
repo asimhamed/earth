@@ -97,6 +97,20 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
 .bar{position:relative}
 .wl{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;border-radius:1px;box-shadow:0 0 0 1px rgba(0,0,0,.5);transform:translateX(-1px);transition:left .1s linear}
 .elev small.orig{display:block;font-size:.7rem;color:var(--dim);margin-top:2px;font-family:var(--f-body)}
+.tabs{display:flex;align-items:center;gap:6px;padding-top:10px;border-top:1px solid var(--line)}
+.tabs .seg{flex:1;display:flex}
+.tabs .seg button{flex:1;font-family:var(--f-body)}
+.pane{display:flex;flex-direction:column;gap:8px}
+.water{padding-top:0;border-top:0}
+.era-name{font-weight:600;font-size:.95rem}
+.era-sub{display:flex;justify-content:space-between;gap:8px;font-size:.75rem;color:var(--dim);flex-wrap:wrap}
+.era-sub .ma{font-family:var(--f-num);color:var(--accent);direction:rtl}
+.era-note{font-size:.75rem;color:#ffe2a6;min-height:1em}
+.when{font-family:var(--f-num);font-size:.85rem;font-variant-numeric:tabular-nums}
+.check{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--dim);cursor:pointer}
+.check input{accent-color:var(--accent);margin:0}
+.src{font-size:.68rem;color:var(--dim);margin:0;line-height:1.5}
+.src a{color:var(--dim)}
 .pin{width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid #fff3d6;box-shadow:0 0 0 6px rgba(242,181,68,.25),0 1px 4px rgba(0,0,0,.6)}
 #err{position:fixed;inset:auto 16px 50% 16px;text-align:center;color:#ffb4a6;z-index:4}
 </style>
@@ -135,10 +149,19 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
     <div class="cap"><span>تحت الماء (كم)</span><span>فوق الماء (كم)</span></div>
   </div>
   </div>
-  <div class="water">
+  <div class="tabs">
+    <div class="seg" role="tablist" aria-label="الأدوات">
+      <button type="button" role="tab" id="tab-water" aria-controls="pane-water" aria-pressed="true">الماء</button>
+      <button type="button" role="tab" id="tab-sun" aria-controls="pane-sun" aria-pressed="false">الشمس</button>
+      <button type="button" role="tab" id="tab-era" aria-controls="pane-era" aria-pressed="false">العصور</button>
+    </div>
+    <button type="button" class="icon" id="moreBtn" aria-controls="more" aria-expanded="true">الخيارات ▾</button>
+  </div>
+
+  <div class="pane water" id="pane-water" role="tabpanel">
     <div class="row">
       <label for="drain">سحب الماء</label>
-      <input type="range" id="drain" min="0" max="11000" step="25" value="0" aria-describedby="drainOut">
+      <input type="range" id="drain" min="0" max="11000" step="25" value="0">
       <output id="drainOut" for="drain">0 م</output>
     </div>
     <div class="head">
@@ -146,9 +169,45 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
       <div class="wbtns">
         <button type="button" class="icon primary" id="play">▶ تشغيل</button>
         <button type="button" class="icon" id="reset">إرجاع الماء</button>
-        <button type="button" class="icon" id="moreBtn" aria-controls="more" aria-expanded="true">الخيارات ▾</button>
       </div>
     </div>
+  </div>
+
+  <div class="pane" id="pane-sun" role="tabpanel" hidden>
+    <div class="head">
+      <span class="when" id="when">—</span>
+      <label class="check" for="sunOn"><input type="checkbox" id="sunOn" checked> الليل والنهار</label>
+    </div>
+    <div class="row">
+      <label for="hour">تقديم الوقت</label>
+      <input type="range" id="hour" min="-1440" max="1440" step="10" value="0">
+      <output id="hourOut" for="hour">الآن</output>
+    </div>
+    <div class="head">
+      <span class="t" id="sunNote">الشمس الآن فوق —</span>
+      <div class="wbtns">
+        <button type="button" class="icon primary" id="dayPlay">▶ دوران اليوم</button>
+        <button type="button" class="icon" id="nowBtn">الآن</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" id="pane-era" role="tabpanel" hidden>
+    <div class="era-name" id="eraName">اليوم</div>
+    <div class="era-sub"><span id="eraEn">Present day</span><span class="ma" id="eraMa">الآن</span></div>
+    <div class="row">
+      <label for="era">الرجوع بالزمن</label>
+      <input type="range" id="era" min="0" max="108" step="1" value="0">
+    </div>
+    <div class="era-note" id="eraNote"></div>
+    <div class="head">
+      <span class="t" id="eraStatus"></span>
+      <div class="wbtns">
+        <button type="button" class="icon primary" id="eraPlay">▶ رحلة عبر الزمن</button>
+        <button type="button" class="icon" id="eraNow">اليوم</button>
+      </div>
+    </div>
+    <p class="src">الخرائط القديمة: <a href="https://zenodo.org/records/5460860" target="_blank" rel="noopener">PALEOMAP PaleoDEMs، Scotese وWright 2018</a> (CC BY 4.0)، بدقة درجة واحدة.</p>
   </div>
 </section>
 <div id="err" hidden></div>
@@ -290,16 +349,18 @@ function showElevation(){
     lbl.innerHTML = (drained ? 'فوق سطح الماء' : 'فوق سطح البحر') + orig;
   }
 }
+let current=null;
 async function select(lng,lat,name,z){
-  const tok=++selToken;
+  const tok=++selToken; current={lng,lat,name,z};
   pin.setLngLat([lng,lat]).addTo(map);
   document.getElementById('place').textContent = name || 'نقطة مختارة';
+  document.getElementById('place').title='';
   document.getElementById('coords').textContent = `${Math.abs(lat).toFixed(3)}° ${lat>=0?'N':'S'}   ${Math.abs(lng).toFixed(3)}° ${lng>=0?'E':'W'}`;
   chips.querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-pressed',String(PLACES[i].name===name)));
   const val=document.getElementById('elevVal'), box=document.getElementById('elevBox'), lbl=document.getElementById('elevLbl');
   val.textContent='…'; lastElev=null;
   try{
-    const m=Math.round(await elevationBest(lng,lat,z));
+    const m = eraIdx>0 ? Math.round((await loadPaleo(), paleoAt(eraIdx,lng,lat))) : Math.round(await elevationBest(lng,lat,z));
     if (tok!==selToken) return;
     lastElev=m; showElevation();
   }catch(e){ if(tok===selToken){ val.textContent='—'; lbl.textContent='تعذّر قراءة الارتفاع هنا'; } }
@@ -325,6 +386,14 @@ function fitPadding(){
 }
 setMore(!narrow);
 addEventListener('resize', fitPadding);
+
+// ---------- tabs ----------
+const TABS=['water','sun','era'];
+function showTab(t){
+  TABS.forEach(k=>{ document.getElementById('tab-'+k).setAttribute('aria-pressed',String(k===t)); document.getElementById('pane-'+k).hidden = k!==t; });
+  fitPadding();
+}
+TABS.forEach(k=>document.getElementById('tab-'+k).addEventListener('click',()=>showTab(k)));
 
 const b3=document.getElementById('v3d'), b2=document.getElementById('v2d');
 function setView(three){
@@ -377,7 +446,188 @@ playBtn.addEventListener('click',()=> anim ? stopAnim() : startAnim());
 resetBtn.addEventListener('click',()=>{ stopAnim(); setSea(0); });
 drain.addEventListener('input',()=>{ stopAnim(); setSea(+drain.value); });
 
+// ================= SUN =================
+const D2R=Math.PI/180, R2D=180/Math.PI;
+function subsolar(date){
+  const d = date.getTime()/86400000 - 10957.5;            // days since J2000.0
+  const g=(357.529+0.98560028*d)*D2R, q=280.459+0.98564736*d;
+  const L=(q+1.915*Math.sin(g)+0.020*Math.sin(2*g))*D2R, e=(23.439-0.00000036*d)*D2R;
+  const ra=Math.atan2(Math.cos(e)*Math.sin(L),Math.cos(L))*R2D, dec=Math.asin(Math.sin(e)*Math.sin(L))*R2D;
+  const gmst=(18.697374558+24.06570982441908*d)%24;
+  let lng=ra-gmst*15; lng=((lng+540)%360)-180;
+  return { lat:dec, lng };
+}
+// region where the sun is lower than h degrees; it always reaches the pole facing away from the sun
+function nightRing(sun, h){
+  const flip = sun.lat < 0, dec = Math.max(Math.abs(sun.lat), 0.01)*D2R, sh=Math.sin(h*D2R);
+  const A=Math.sin(dec), edge=[];
+  for (let lng=-180; lng<=180; lng+=2){
+    const B=Math.cos(dec)*Math.cos((lng-sun.lng)*D2R), Rr=Math.hypot(A,B), c=sh/Rr;
+    let lat = c < -1 ? -90 : (Math.asin(Math.min(1,c)) - Math.atan2(B,A))*R2D;
+    lat=Math.max(-90,Math.min(90,lat));
+    edge.push([lng, flip ? -lat : lat]);
+  }
+  const pole = flip ? 90 : -90, ring=[];
+  for (let lng=-180; lng<=180; lng+=2) ring.push([lng,pole]);
+  for (let i=edge.length-1;i>=0;i--) ring.push(edge[i]);
+  ring.push(ring[0]);
+  return ring;
+}
+// civil → astronomical twilight in 1.5° steps; stacked fills give a smooth, dark night side
+const BANDS=Array.from({length:13},(_,i)=>[0.5-i*1.5, 0.072]);
+let timeOffset=0, sunOn=true;
+const whenEl=document.getElementById('when'), hourIn=document.getElementById('hour'), hourOut=document.getElementById('hourOut'), sunNote=document.getElementById('sunNote');
+const dtFmt=new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{ weekday:'short', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
+function sunNow(){ return new Date(Date.now()+timeOffset*60000); }
+function drawSun(){
+  const t=sunNow(), sun=subsolar(t);
+  whenEl.textContent=dtFmt.format(t);
+  const h=Math.round(timeOffset/60*10)/10;
+  hourOut.textContent = timeOffset===0 ? 'الآن' : `${h>0?'+':'−'}${Math.abs(h)} س`;
+  sunNote.textContent=`الشمس عموديّة فوق ${Math.abs(sun.lat).toFixed(1)}° ${sun.lat>=0?'N':'S'}، ${Math.abs(sun.lng).toFixed(1)}° ${sun.lng>=0?'E':'W'}`;
+  BANDS.forEach(([h],i)=>{
+    const src=map.getSource('night'+i);
+    if (src) src.setData({ type:'Feature', properties:{}, geometry:{ type:'Polygon', coordinates:[nightRing(sun,h)] } });
+  });
+  const sp=map.getSource('sunpt'); if (sp) sp.setData({ type:'Point', coordinates:[sun.lng,sun.lat] });
+}
+function addSunLayers(){
+  BANDS.forEach(([h,op],i)=>{
+    map.addSource('night'+i,{ type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+    map.addLayer({ id:'night'+i, type:'fill', source:'night'+i, paint:{ 'fill-color':'#020614', 'fill-opacity':op, 'fill-antialias':false } });
+  });
+  map.addSource('sunpt',{ type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+  map.addLayer({ id:'sunpt-glow', type:'circle', source:'sunpt', paint:{ 'circle-radius':14, 'circle-color':'#ffd46b', 'circle-opacity':0.25, 'circle-blur':0.8 } });
+  map.addLayer({ id:'sunpt', type:'circle', source:'sunpt', paint:{ 'circle-radius':5, 'circle-color':'#ffd46b', 'circle-stroke-color':'#fff6dc', 'circle-stroke-width':1.5 } });
+  drawSun();
+}
+function setSunVisible(v){
+  sunOn=v;
+  [...BANDS.map((_,i)=>'night'+i),'sunpt-glow','sunpt'].forEach(id=>map.getLayer(id)&&map.setLayoutProperty(id,'visibility',v?'visible':'none'));
+}
+document.getElementById('sunOn').addEventListener('change',e=>setSunVisible(e.target.checked));
+hourIn.addEventListener('input',()=>{ stopDay(); timeOffset=+hourIn.value; drawSun(); });
+document.getElementById('nowBtn').addEventListener('click',()=>{ stopDay(); timeOffset=0; hourIn.value='0'; drawSun(); });
+setInterval(()=>{ if(!dayAnim) drawSun(); }, 30000);
+let dayAnim=null; const dayBtn=document.getElementById('dayPlay');
+function stopDay(){ if(dayAnim){ cancelAnimationFrame(dayAnim.id); dayAnim=null; } dayBtn.textContent='▶ دوران اليوم'; }
+dayBtn.addEventListener('click',()=>{
+  if (dayAnim) return stopDay();
+  if (!sunOn){ document.getElementById('sunOn').checked=true; setSunVisible(true); }
+  let last=performance.now(); dayBtn.textContent='⏸ إيقاف';
+  const step=now=>{
+    timeOffset += (now-last)/1000*120;    // two hours of sunlight per second
+    last=now;
+    if (timeOffset>1440) timeOffset-=2880;
+    hourIn.value=String(Math.round(timeOffset/10)*10); drawSun();
+    dayAnim.id=requestAnimationFrame(step);
+  };
+  dayAnim={ id:requestAnimationFrame(step) };
+});
+
+// ================= DEEP TIME =================
+const ERA_AGES=[0.0, 4.47, 10.5, 14.9, 19.5, 25.6, 31.0, 35.9, 39.5, 44.5, 51.9, 56.0, 61.0, 66.0, 69.0, 75.0, 80.8, 86.7, 91.9, 97.2, 102.6, 107.0, 111.0, 115.8, 121.8, 127.2, 131.2, 136.4, 142.4, 145.0, 148.6, 154.7, 160.4, 164.8, 168.2, 172.2, 178.4, 186.8, 190.8, 196.0, 201.3, 204.9, 213.2, 217.8, 222.4, 227.0, 232.0, 233.6, 239.5, 244.6, 252.0, 256.0, 262.5, 265.1, 268.7, 275.0, 280.0, 286.8, 292.6, 297.0, 301.3, 305.4, 311.1, 314.6, 319.2, 327.0, 330.9, 333.0, 338.8, 344.0, 349.0, 354.0, 358.9, 365.6, 370.0, 375.0, 380.0, 385.2, 390.5, 395.0, 400.0, 405.0, 409.2, 415.0, 421.1, 425.2, 430.4, 436.0, 441.2, 444.5, 449.1, 455.7, 460.0, 465.0, 470.0, 475.0, 481.6, 485.4, 491.8, 495.5, 498.8, 505.0, 510.0, 515.0, 520.0, 525.0, 530.0, 535.0, 541.0];
+const ERA_EN=["Present-day (Holocene, 0 Ma)", "Early Pliocene (Zanclean, 4.47 Ma)", "Middle/Late Miocene (Serravallian&Tortonian, 10.5 Ma)", "Middle Miocene (Langhian, 14.9 Ma)", "Early Miocene (Aquitanian&Burdigalian, 19.5 Ma)", "Late Oligocene (Chattian, 25.6 Ma)", "Early Oligocene (Rupelian, 31 Ma)", "Late Eocene (Priabonian, 35.9 Ma)", "Late Middle Eocene (Bartonian, 39.5 Ma)", "Early Middle Eocene (Lutetian, 44.5 Ma)", "Early Eocene (Ypresian, 51.9 Ma)", "Paleocene/Eocene Boundary (PETM, 56 Ma)", "Paleocene (Danian & Thanetian, 61 Ma)", "KT Boundary (Latest Maastrichtian, 66 Ma)", "Late Cretaceous (Maastrichtian, 69 Ma)", "Late Cretaceous (Late Campanian, 75 Ma)", "Late Cretaceous (Early Campanian, 80.8 Ma)", "Late Cretaceous (Santonian&Coniacian, 86.7 Ma)", "Mid-Cretaceous (Turonian , 91.9 Ma)", "Mid-Cretaceous (Cenomanian, 97.2 Ma)", "Early Cretaceous (Late Albian, 102.6 Ma)", "Early Cretaceous (Middle Albian, 107 Ma)", "Early Cretaceous (Early Albian, 111 Ma)", "Early Cretaceous (Late Aptian, 115.8 Ma)", "Early Cretaceous (Early Aptian, 121.8 Ma)", "Early Cretaceous (Barremian, 127.2 Ma)", "Early Cretaceous (Hauterivian, 131.2 Ma)", "Early Cretaceous (Valanginian, 136.4 Ma)", "Early Cretaceous (Berriasian, 142.4 Ma)", "Jurassic/Cretaceous Boundary (145 Ma)", "Late Jurassic (Tithonian, 148.6 Ma)", "Late Jurassic (Kimmeridgian, 154.7 Ma)", "Late Jurassic (Oxfordian, 160.4 Ma)", "Middle Jurassic (Callovian, 164.8 Ma)", "Middle Jurassic (Bajocian&Bathonian, 168.2)", "Middle Jurassic (Aalenian, 172.2 Ma)", "Early Jurassic (Toarcian, 178.4 Ma)", "Early Jurassic (Pliensbachian, 186.8 Ma)", "Early Jurassic (Sinemurian/Pliensbachian, 190.8 Ma)", "Early Jurassic (Hettangian&Sinemurian, 196 Ma)", "Late Triassic (Rhaetian/Hettangian, 201.3 Ma)", "Late Triassic (Rhaetian, 204.9 Ma)", "Late Triassic (Late Norian, 213.2 Ma)", "Late Triassic (Mid Norian, 217.8 Ma)", "Late Triassic (Early Norian, 222.4 Ma)", "Late Triassic (Carnian/Norian 227 Ma)", "Late Triassic (Carnian, 232 Ma)", "Late Triassic (Early Carnian, 233.6)", "Middle Triassic (Ladinian, 239.5 Ma)", "Middle Triassic (Anisian, 244.6 Ma)", "Permo-Triassic Boundary (252 Ma)", "Late Permian (Lopingian, 256 Ma)", "Late Middle Permian (Capitanian, 262.5 Ma)", "Middle Permian (Wordian/Capitanian Boundary 265.1 Ma)", "Middle Permian (Roadian&Wordian, 268.7 Ma)", "Early Permian (Late Kungurian, 275 Ma)", "Early Permian (Early Kungurian, 280 Ma)", "Early Permian (Artinskian, 286.8 Ma)", "Early Permian (Sakmarian, 292.6 Ma)", "Early Permian (Asselian, 297 Ma)", "Late Pennsylvanian (Gzhelian, 301.3 Ma)", "Late Pennsylvanian (Kasimovian, 305.4 Ma)", "Middle Pennsylvanian (Moscovian, 311.1 Ma)", "Early/Middle Carboniferous (Baskirian/Moscovian boundary, 314.6 Ma)", "Early Pennsylvanian (Bashkirian, 319.2 Ma)", "Late Mississippian (Serpukhovian, 327 Ma)", "Late Mississippian (Visean/Serpukhovian boundary, 330.9 Ma)", "Middle Mississippian (Late Visean, 333 Ma)", "Middle Mississippian (Middle Visean, 338.8Ma)", "Middle Mississippian (Early Visean, 344 Ma)", "Early Mississippian (Late Tournaisian, 349 Ma)", "Early Mississippian (Early Tournaisian, 354Ma)", "Devono-Carboniferous Boundary (358.9 Ma)", "Late Devonian (Middle Famennian, 365.6 Ma)", "Late Devonian (Early Famennian, 370 Ma)", "Late Devonian (Late Frasnian, 375 Ma)", "Late Devonian (Early Frasnian, 380 Ma)", "Middle Devonian (Givetian, 385.2 Ma)", "Middle Devonian (Eifelian, 390.5 Ma)", "Early Devonian (Late Emsian, 395 Ma)", "Early Devonian (Middle Emsian, 400 Ma)", "Early Devonian (Early Emsian, 405 Ma)", "Early Devonian (Pragian, 409.2 Ma)", "Early Devonian (Lochkovian, 415 Ma)", "Late Silurian (Pridoli, 421.1 Ma)", "Late Silurian (Ludlow, 425.2 Ma)", "Middle Silurian (Wenlock, 430.4 Ma)", "Early Silurian (Late Llandovery, 436 Ma)", "Early Silurian (Early Llandovery, 441.2 Ma)", "Late Ordovician (Hirnantian, 444.5 Ma)", "Late Ordovician (Katian, 449.1 Ma)", "Late Ordovician (Sandbian, 455.7 Ma)", "Middle Ordovician (Late Darwillian,460 Ma)", "Middle Ordovician (Early Darwillian,465 Ma)", "Early Ordovician (Floian/Dapingianboundary, 470 Ma)", "Early Ordovician (Late Early Floian, 475 Ma)", "Early Ordovician (Tremadoc, 481.6 Ma)", "Cambro-Ordovician Boundary (485.4 Ma)", "Late Cambrian (Jiangshanian, 491.8 Ma)", "Late Cambrian (Pabian, 495.5 Ma)", "Late Middle Cambrian (Guzhangian, 498.8 Ma)", "Late Middle Cambrian (Early Epoch 3, 505 Ma)", "Early Middle Cambrian (Late Epoch 2, 510 Ma)", "Early Middle Cambrian (Middle Epoch 2, 515 Ma)", "Early/Middle Cambrian boundary (520 Ma)", "Early Cambrian (Late Terreneuvian, 525 Ma)", "Early Cambrian (Middle Terreneuvian, 530 Ma)", "Early Cambrian (Early Terreneuvian, 535 Ma)", "Cambrian/Precambrian boundary (541 Ma)"];
+const PERIOD=[['Holocene','الهولوسين'],['Pliocene','البليوسين'],['Miocene','الميوسين'],['Oligocene','الأوليغوسين'],['Eocene','الإيوسين'],['Paleocene','الباليوسين'],
+  ['Cretaceous','الطباشيري'],['Jurassic','الجوراسي'],['Triassic','الترياسي'],['Permian','البرمي'],['Pennsylvanian','البنسلفاني (الكربوني)'],['Mississippian','المسيسيبي (الكربوني)'],
+  ['Carboniferous','الكربوني'],['Devonian','الديفوني'],['Silurian','السيلوري'],['Ordovician','الأوردوفيشي'],['Cambrian','الكامبري']];
+const SPECIAL={'Present-day':'اليوم','KT Boundary':'نهاية العصر الطباشيري','Permo-Triassic Boundary':'الحد بين البرمي والترياسي','Jurassic/Cretaceous Boundary':'الحد بين الجوراسي والطباشيري',
+  'Paleocene/Eocene Boundary':'الحد بين الباليوسين والإيوسين','Cambrian/Precambrian boundary':'بداية العصر الكامبري','Cambro-Ordovician Boundary':'الحد بين الكامبري والأوردوفيشي',
+  'Devono-Carboniferous Boundary':'الحد بين الديفوني والكربوني','Early/Middle Carboniferous':'الكربوني المبكر والأوسط','Early/Middle Cambrian boundary':'الحد بين الكامبري المبكر والأوسط',
+  'Mid-Cretaceous':'الطباشيري الأوسط','Middle/Late Miocene':'الميوسين الأوسط والمتأخر'};
+function eraArabic(en){
+  const base=en.replace(/\s*\(.*$/,'');
+  if (SPECIAL[base]) return SPECIAL[base];
+  const per=PERIOD.find(([k])=>base.includes(k)); if(!per) return base;
+  let q='';
+  if (/^Early Middle/.test(base)) q=' الأوسط المبكر'; else if (/^Late Middle/.test(base)) q=' الأوسط المتأخر';
+  else if (/^Early/.test(base)) q=' المبكر'; else if (/^Middle/.test(base)) q=' الأوسط'; else if (/^Late/.test(base)) q=' المتأخر';
+  return 'العصر '+per[1]+q;
+}
+function eraNoteFor(ma){
+  if (ma===0) return '';
+  if (Math.abs(ma-66)<0.5) return 'لحظة اصطدام النيزك وانقراض الديناصورات';
+  if (Math.abs(ma-252)<0.5) return 'الانقراض العظيم: اختفى أكثر من 90% من الكائنات البحرية';
+  if (ma>=541) return 'بداية الانفجار الكامبري، حين ظهرت معظم أشكال الحياة الحيوانية';
+  if (ma>=175 && ma<=335) return 'قارة بانجيا العظمى: معظم اليابسة كتلة واحدة';
+  if (ma>66 && ma<230) return 'زمن الديناصورات';
+  if (ma<=6) return 'ظهور أسلاف البشر في أفريقيا';
+  return '';
+}
+const PW=360, PH=181;
+let PALEO=null, paleoLoading=null, eraIdx=0;
+async function loadPaleo(){
+  if (PALEO) return PALEO;
+  if (paleoLoading) return paleoLoading;
+  paleoLoading=(async()=>{
+    const res=await fetch('paleo.bin'); if(!res.ok) throw new Error('paleo '+res.status);
+    let buf=new Uint8Array(await res.arrayBuffer());
+    if (buf[0]===0x1f && buf[1]===0x8b) buf=new Uint8Array(await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    const N=buf.length/2, out=new Int16Array(N);
+    for (let r=0;r<N/PW;r++){ let acc=0; for (let c=0;c<PW;c++){ const i=r*PW+c; acc+=((buf[i]|(buf[N+i]<<8))<<16)>>16; out[i]=acc; } }
+    PALEO=out; return out;
+  })();
+  return paleoLoading;
+}
+// bilinear sample of era k at lng/lat (grid rows run south→north, columns west→east)
+function paleoAt(k,lng,lat){
+  const fr=Math.max(0,Math.min(PH-1.0001,lat+90)), fc=((lng+180)%360+360)%360;
+  const r0=Math.floor(fr), c0=Math.floor(fc)%PW, c1=(c0+1)%PW, tr=fr-r0, tc=fc-Math.floor(fc), o=k*PW*PH;
+  const g=(r,c)=>PALEO[o+r*PW+c];
+  return (g(r0,c0)*(1-tc)+g(r0,c1)*tc)*(1-tr)+(g(r0+1,c0)*(1-tc)+g(r0+1,c1)*tc)*tr;
+}
+// serve the chosen era as Terrarium-encoded elevation tiles, so colours, shading and 3D all just work
+const tileCanvas = typeof OffscreenCanvas!=='undefined' ? new OffscreenCanvas(256,256) : Object.assign(document.createElement('canvas'),{width:256,height:256});
+maplibregl.addProtocol('paleo', async (params)=>{
+  const m=params.url.match(/paleo:\/\/(\d+)\/(\d+)\/(\d+)\/(\d+)/); const k=+m[1], z=+m[2], x=+m[3], y=+m[4];
+  await loadPaleo();
+  const n=2**z, img=new ImageData(256,256), d=img.data;
+  for (let py=0;py<256;py++){
+    const lat=Math.atan(Math.sinh(Math.PI*(1-2*(y+(py+0.5)/256)/n)))*R2D;
+    for (let px=0;px<256;px++){
+      const lng=(x+(px+0.5)/256)/n*360-180;
+      const v=paleoAt(k,lng,lat)+32768, i=(py*256+px)*4;
+      d[i]=Math.floor(v/256); d[i+1]=Math.floor(v)%256; d[i+2]=Math.floor((v%1)*256); d[i+3]=255;
+    }
+  }
+  const ctx=tileCanvas.getContext('2d'); ctx.putImageData(img,0,0);
+  const blob = tileCanvas.convertToBlob ? await tileCanvas.convertToBlob({type:'image/png'}) : await new Promise(r=>tileCanvas.toBlob(r,'image/png'));
+  return { data: await blob.arrayBuffer() };
+});
+
+const eraIn=document.getElementById('era'), eraName=document.getElementById('eraName'), eraEn=document.getElementById('eraEn'), eraMa=document.getElementById('eraMa'), eraNote=document.getElementById('eraNote'), eraStatus=document.getElementById('eraStatus');
+let eraTimer=null;
+function eraLabels(k){
+  const ma=ERA_AGES[k];
+  eraName.textContent=eraArabic(ERA_EN[k]);
+  eraEn.textContent=ERA_EN[k].replace(/\s*\(.*$/,'');
+  eraMa.textContent = ma===0 ? 'الآن' : `قبل ${ma.toLocaleString('en-US')} مليون سنة`;
+  eraNote.textContent=eraNoteFor(ma);
+}
+async function setEra(k){
+  eraIdx=k; eraIn.value=String(k); eraLabels(k);
+  if (k>0 && !PALEO){ eraStatus.textContent='جارٍ تحميل الخرائط القديمة (3 ميغابايت)…'; try{ await loadPaleo(); }catch(e){ eraStatus.textContent='تعذّر تحميل الخرائط القديمة'; return; } }
+  if (eraIdx!==k) return;
+  eraStatus.textContent = k>0 ? 'مواقع القارات كما كانت في ذلك الزمن' : '';
+  const tiles = k>0 ? [`paleo://${k}/{z}/{x}/{y}`] : [TILES];
+  map.getSource('relief').setTiles(tiles); map.getSource('terrain').setTiles(tiles);
+  chips.hidden = k>0;
+  if (current) select(current.lng,current.lat,current.name,current.z);
+}
+eraIn.addEventListener('input',()=>{ stopEra(); setEra(+eraIn.value); });
+document.getElementById('eraNow').addEventListener('click',()=>{ stopEra(); setEra(0); });
+const eraBtn=document.getElementById('eraPlay');
+function stopEra(){ if(eraTimer){ clearTimeout(eraTimer); eraTimer=null; } eraBtn.textContent='▶ رحلة عبر الزمن'; }
+eraBtn.addEventListener('click',()=>{
+  if (eraTimer) return stopEra();
+  eraBtn.textContent='⏸ إيقاف';
+  let k = eraIdx>=108 ? 0 : eraIdx;
+  const tick=async()=>{ k++; await setEra(k); if (k>=108 || !eraTimer){ stopEra(); return; } eraTimer=setTimeout(tick, 1100); };
+  eraTimer=setTimeout(tick, 10);
+});
+
 map.on('load',()=>{
+  addSunLayers();
   fitPadding();
   select(PLACES[0].lng,PLACES[0].lat,PLACES[0].name,10);
   map.addControl(new maplibregl.NavigationControl({ visualizePitch:true, showCompass:true }), 'top-left');
