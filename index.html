@@ -381,8 +381,8 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
     <label class="check" for="snowSea"><input type="checkbox" id="snowSea" checked> الجليد البحري</label>
   </div>
   <p class="muted">القطب الشمالي يتجمد بحره في الشتاء ويذوب جزء كبير منه في الصيف. قارن مع القطب الجنوبي، فالفصول هناك معكوسة.</p>
-  <p class="muted">صورة الثلج من قمر يمر في شرائط، فقد تظهر فجوات أو غيوم تغطي الثلج.</p>
-  <p class="src">الصور: NASA GIBS (VIIRS NOAA-20 للثلج، GHRSST MUR للجليد البحري)، آخر يوم متاح.</p>
+  <p class="muted">الأبيض ثلج، والجليد البحري أبيض مائل للأزرق وكثافته حسب نسبة الجليد. الأماكن اللي غطتها الغيوم يوم التصوير ما يظهر فيها الثلج.</p>
+  <p class="src">الصور: NASA GIBS (MODIS للثلج اليومي، GHRSST MUR للجليد البحري)، آخر يوم متاح، وغالبًا قبل يوم أو يومين.</p>
 </section>
 <nav class="dock" aria-label="الأدوات">
   <button type="button" class="tool" disabled id="tool-places" aria-pressed="false" aria-controls="card-places"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>أماكن</span></button>
@@ -844,16 +844,16 @@ function paleoAt(k,lng,lat){
 // minimal PNG writer: RGB, stored (uncompressed) deflate — ~1 ms instead of seconds through canvas
 const CRC=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xedb88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
 function crc32(u8,s,e){ let c=0xffffffff; for(let i=s;i<e;i++) c=CRC[(c^u8[i])&255]^(c>>>8); return (c^0xffffffff)>>>0; }
-function encodePNG(rgb,w,h){
-  const row=w*3+1, raw=row*h, nBlocks=Math.ceil(raw/65535);
+function encodePNG(rgb,w,h,ch=3){
+  const row=w*ch+1, raw=row*h, nBlocks=Math.ceil(raw/65535);
   const idatLen=2+raw+nBlocks*5+4, out=new Uint8Array(8+25+12+idatLen+12), dv=new DataView(out.buffer);
   out.set([137,80,78,71,13,10,26,10],0);
   let o=8;
   const chunk=(type,len,fill)=>{ dv.setUint32(o,len); const s=o+4; out.set([...type].map(c=>c.charCodeAt(0)),s); fill(s+4); dv.setUint32(s+4+len, crc32(out,s,s+4+len)); o=s+8+len; };
-  chunk('IHDR',13,p=>{ dv.setUint32(p,w); dv.setUint32(p+4,h); out.set([8,2,0,0,0],p+8); });
+  chunk('IHDR',13,p=>{ dv.setUint32(p,w); dv.setUint32(p+4,h); out.set([8,ch===4?6:2,0,0,0],p+8); });
   chunk('IDAT',idatLen,p=>{
     out[p]=0x78; out[p+1]=0x01; let q=p+2, a=1, b=0, done=0;
-    const byteAt=i=>{ const r=(i/row)|0, c=i-r*row; return c===0 ? 0 : rgb[r*w*3+c-1]; };
+    const byteAt=i=>{ const r=(i/row)|0, c=i-r*row; return c===0 ? 0 : rgb[r*w*ch+c-1]; };
     while(done<raw){
       const n=Math.min(65535,raw-done), last=done+n>=raw;
       out[q]=last?1:0; out[q+1]=n&255; out[q+2]=n>>8; out[q+3]=(~n)&255; out[q+4]=((~n)>>8)&255; q+=5;
@@ -1279,9 +1279,29 @@ async function sstAt(lng,lat){
 
 // ---------- snow & sea ice ----------
 const snowLand=document.getElementById('snowLand'), snowSea=document.getElementById('snowSea');
+// NASA's snow and sea-ice tiles use false-colour palettes; repaint them as plain white so they read as snow and ice
+const FX={
+  snow:{ url:(z,y,x)=>`${GIBS}MODIS_Terra_L3_NDSI_Snow_Cover_Daily/default/default/GoogleMapsCompatible_Level8/${z}/${y}/${x}.png`,
+         px:(r,g,b,a)=> a ? [250,252,255,225] : [0,0,0,0] },
+  ice: { url:(z,y,x)=>`${GIBS}GHRSST_L4_MUR_Sea_Ice_Concentration/default/default/GoogleMapsCompatible_Level7/${z}/${y}/${x}.png`,
+         px:(r,g,b,a)=>{ if(!a) return [0,0,0,0]; const l=(r+g+b)/765; return l<0.08 ? [0,0,0,0] : [225,240,255,Math.round(60+180*l)]; } }
+};
+const emptyTile=encodePNG(new Uint8Array(256*256*4),256,256,4);
+maplibregl.addProtocol('gibsfx', async (params)=>{
+  const [,kind,z,y,x]=params.url.match(/gibsfx:\/\/(\w+)\/(\d+)\/(\d+)\/(\d+)/), fx=FX[kind];
+  try{
+    const r=await fetch(fx.url(z,y,x)); if(!r.ok) return { data: emptyTile.slice(0) };
+    const bm=await createImageBitmap(await r.blob());
+    const c=typeof OffscreenCanvas!=='undefined' ? new OffscreenCanvas(256,256) : Object.assign(document.createElement('canvas'),{width:256,height:256});
+    const g=c.getContext('2d'); g.drawImage(bm,0,0,256,256);
+    const d=g.getImageData(0,0,256,256).data, out=new Uint8Array(256*256*4);
+    for (let i=0;i<d.length;i+=4){ const q=fx.px(d[i],d[i+1],d[i+2],d[i+3]); out[i]=q[0]; out[i+1]=q[1]; out[i+2]=q[2]; out[i+3]=q[3]; }
+    return { data: encodePNG(out,256,256,4) };
+  }catch(e){ return { data: emptyTile.slice(0) }; }
+});
 function ensureSnow(){
-  addRaster('snowl', `${GIBS}VIIRS_NOAA20_NDSI_Snow_Cover/default/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`, 8, 'صور: NASA GIBS (VIIRS)', 0.9);
-  addRaster('seaice', `${GIBS}GHRSST_L4_MUR_Sea_Ice_Concentration/default/default/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png`, 7, 'صور: NASA GIBS (GHRSST)', 0.9);
+  addRaster('snowl', 'gibsfx://snow/{z}/{y}/{x}', 8, 'صور: NASA GIBS (MODIS)', 1);
+  addRaster('seaice', 'gibsfx://ice/{z}/{y}/{x}', 7, 'صور: NASA GIBS (GHRSST)', 1);
 }
 [snowLand,snowSea].forEach(c=>c.addEventListener('change',applyVisibility));
 
