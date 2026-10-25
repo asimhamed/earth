@@ -62,6 +62,7 @@ header p{margin:0;color:var(--dim);font-size:.8rem;text-shadow:0 1px 3px #000}
   background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 8px 7px;cursor:pointer}
 .tool svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .tool:hover{color:var(--ink)}
+.dock .sep{flex:none;width:1px;align-self:stretch;margin:6px 4px;background:var(--line)}
 .tool:disabled{opacity:.45;cursor:progress}
 .tool[aria-pressed="true"]{color:#1d1404;background:var(--accent);border-color:var(--accent)}
 
@@ -323,17 +324,84 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
   <p class="muted">قارن بين المناطق: الخليج والنيل والهند وأوروبا تلمع، وأماكن واسعة في أفريقيا وأستراليا مظلمة.</p>
   <p class="src">الصورة: NASA Black Marble (VIIRS)، عبر NASA GIBS.</p>
 </section>
+<section class="card" id="card-events" aria-labelledby="h-events" hidden>
+  <div class="card-h"><div><h2 id="h-events">حرائق وأعاصير</h2><p>الكوارث الطبيعية النشطة الآن حول العالم من ناسا: حرائق الغابات والأعاصير والجليد. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="seg" role="group" aria-label="النوع" style="display:flex">
+    <button type="button" data-ev="all" aria-pressed="true" style="flex:1">الكل</button>
+    <button type="button" data-ev="wildfires" aria-pressed="false" style="flex:1">حرائق</button>
+    <button type="button" data-ev="severeStorms" aria-pressed="false" style="flex:1">أعاصير</button>
+    <button type="button" data-ev="other" aria-pressed="false" style="flex:1">أخرى</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><span>حرائق نشطة</span><b id="evFires">—</b></div>
+    <div class="stat"><span>أعاصير وعواصف</span><b id="evStorms">—</b></div>
+  </div>
+  <div class="stage" id="evInfo"><b id="evInfoT">اضغط على أي علامة</b><span id="evInfoD">الأحمر حرائق، والبنفسجي أعاصير مع مسارها، والأزرق جليد.</span></div>
+  <p class="src">البيانات: NASA EONET (Earth Observatory Natural Event Tracker)، آخر 30 يومًا. تغطية الحرائق أوسع في أمريكا الشمالية.</p>
+</section>
+<section class="card" id="card-iss" aria-labelledby="h-iss" hidden>
+  <div class="card-h"><div><h2 id="h-iss">محطة الفضاء الدولية</h2><p>وين محطة الفضاء الآن، ومسارها فوق الأرض. تتحرك مباشرة. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="stats">
+    <div class="stat"><span>الارتفاع</span><b id="issAlt">—</b></div>
+    <div class="stat"><span>السرعة</span><b id="issVel">—</b></div>
+    <div class="stat"><span>فوق</span><b id="issPos">—</b></div>
+    <div class="stat"><span>الإضاءة</span><b id="issVis" style="font-family:var(--f-body);font-size:.85rem">—</b></div>
+  </div>
+  <div class="head">
+    <span class="t">تدور حول الأرض كل 92 دقيقة تقريبًا</span>
+    <label class="check" for="issFollow"><input type="checkbox" id="issFollow" checked> تابع المحطة</label>
+  </div>
+  <p class="src">الموقع: wheretheiss.at، ويتحدّث كل 3 ثوانٍ. المسار تقديري لـ 45 دقيقة قبل وبعد.</p>
+</section>
+<section class="card" id="card-weather" aria-labelledby="h-weather" hidden>
+  <div class="card-h"><div><h2 id="h-weather">الطقس الآن</h2><p>حرارة أهم مدن العالم الآن، واضغط على أي مكان لتعرف طقسه. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="stage" id="wxInfo"><b id="wxT">اضغط على أي مكان في الخريطة</b><span id="wxD">يطلع لك الطقس الحالي فيه.</span></div>
+  <div class="stats">
+    <div class="stat"><span>الحرارة</span><b id="wxTemp">—</b></div>
+    <div class="stat"><span>الإحساس</span><b id="wxFeel">—</b></div>
+    <div class="stat"><span>الرطوبة</span><b id="wxHum">—</b></div>
+    <div class="stat"><span>الرياح</span><b id="wxWind">—</b></div>
+  </div>
+  <p class="src">البيانات: Open-Meteo. آخر تحديث للمدن: <span id="wxUpdated">—</span></p>
+</section>
+<section class="card" id="card-sst" aria-labelledby="h-sst" hidden>
+  <div class="card-h"><div><h2 id="h-sst">حرارة البحر</h2><p>حرارة سطح المحيطات كما رصدتها الأقمار في آخر يوم. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="legend">
+    <div class="bar" style="background:linear-gradient(to right,#2b0b5e,#2340b8,#1fa3d6,#3fd08c,#e8e53a,#f08a24,#c91d1d)"></div>
+    <div class="cap"><span>بارد (قرب 0°م)</span><span>دافئ (فوق 30°م)</span></div>
+  </div>
+  <div class="stage" id="sstInfo"><b id="sstT">اضغط على أي نقطة في البحر</b><span id="sstD">يطلع لك حرارة سطح الماء فيها الآن.</span></div>
+  <p class="muted">لاحظ المياه الدافئة في الخليج العربي والبحر الأحمر، وتيار الخليج الدافئ قرب أمريكا.</p>
+  <p class="src">الصورة: NASA GIBS (GHRSST MUR). القراءة عند الضغط: Open-Meteo Marine.</p>
+</section>
+<section class="card" id="card-snow" aria-labelledby="h-snow" hidden>
+  <div class="card-h"><div><h2 id="h-snow">الثلج والجليد</h2><p>وين الثلج على اليابسة والجليد في البحار الآن. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="head">
+    <label class="check" for="snowLand"><input type="checkbox" id="snowLand" checked> الثلج على اليابسة</label>
+    <label class="check" for="snowSea"><input type="checkbox" id="snowSea" checked> الجليد البحري</label>
+  </div>
+  <p class="muted">القطب الشمالي يتجمد بحره في الشتاء ويذوب جزء كبير منه في الصيف. قارن مع القطب الجنوبي، فالفصول هناك معكوسة.</p>
+  <p class="muted">صورة الثلج من قمر يمر في شرائط، فقد تظهر فجوات أو غيوم تغطي الثلج.</p>
+  <p class="src">الصور: NASA GIBS (VIIRS NOAA-20 للثلج، GHRSST MUR للجليد البحري)، آخر يوم متاح.</p>
+</section>
 <nav class="dock" aria-label="الأدوات">
   <button type="button" class="tool" disabled id="tool-places" aria-pressed="false" aria-controls="card-places"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>أماكن</span></button>
   <button type="button" class="tool" disabled id="tool-view" aria-pressed="false" aria-controls="card-view"><svg viewBox="0 0 24 24"><path d="M3 18l6-9 4 6 3-4 5 7z"/><path d="M3 21h18"/></svg><span>طريقة العرض</span></button>
+  <span class="sep" aria-hidden="true"></span>
   <button type="button" class="tool" disabled id="tool-water" aria-pressed="false" aria-controls="card-water"><svg viewBox="0 0 24 24"><path d="M2 9c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 14c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M2 19c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/></svg><span>مستوى الماء</span></button>
   <button type="button" class="tool" disabled id="tool-day" aria-pressed="false" aria-controls="card-day"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg><span>الليل والنهار</span></button>
   <button type="button" class="tool" disabled id="tool-era" aria-pressed="false" aria-controls="card-era"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l-3 2"/><path d="M3.5 4.5v4h4"/></svg><span>رحلة عبر الزمن</span></button>
   <button type="button" class="tool" disabled id="tool-sun" aria-pressed="false" aria-controls="card-sun"><svg viewBox="0 0 24 24"><circle cx="7" cy="12" r="4"/><circle cx="19" cy="12" r="1.8"/><path d="M13 12h2.5M7 5V4M7 20v-1M2 12h1M3.5 8.5l-.7-.7M3.5 15.5l-.7.7"/></svg><span>قرب الشمس</span></button>
+  <span class="sep" aria-hidden="true"></span>
   <button type="button" class="tool" disabled id="tool-sat" aria-pressed="false" aria-controls="card-sat"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M3 5l4 4M17 15l4 4M15 9l2-2M7 17l2-2M2 9l3-3 3 3-3 3zM16 18l3-3 3 3-3 3z"/></svg><span>صور الأقمار</span></button>
   <button type="button" class="tool" disabled id="tool-clouds" aria-pressed="false" aria-controls="card-clouds"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 18z"/></svg><span>الغيوم</span></button>
-  <button type="button" class="tool" disabled id="tool-quakes" aria-pressed="false" aria-controls="card-quakes"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 3 12 3-9 2 3h6"/></svg><span>الزلازل الحيّة</span></button>
   <button type="button" class="tool" disabled id="tool-lights" aria-pressed="false" aria-controls="card-lights"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/><circle cx="17" cy="5" r=".8" fill="currentColor"/><circle cx="20" cy="9" r=".8" fill="currentColor"/></svg><span>أضواء المدن</span></button>
+  <button type="button" class="tool" disabled id="tool-quakes" aria-pressed="false" aria-controls="card-quakes"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 3 12 3-9 2 3h6"/></svg><span>الزلازل الحيّة</span></button>
+  <button type="button" class="tool" disabled id="tool-events" aria-pressed="false" aria-controls="card-events"><svg viewBox="0 0 24 24"><path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.6.7-2.7 1.6-3.6.2 1.4.9 2.2 1.9 2.4C11 8 11 5.5 12 3z"/><path d="M6 20h12"/></svg><span>حرائق وأعاصير</span></button>
+  <button type="button" class="tool" disabled id="tool-iss" aria-pressed="false" aria-controls="card-iss"><svg viewBox="0 0 24 24"><rect x="10" y="9" width="4" height="6" rx="1"/><path d="M3 7h5v10H3zM16 7h5v10h-5zM8 12h2M14 12h2"/></svg><span>محطة الفضاء</span></button>
+  <button type="button" class="tool" disabled id="tool-weather" aria-pressed="false" aria-controls="card-weather"><svg viewBox="0 0 24 24"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 11v6"/></svg><span>الطقس الآن</span></button>
+  <button type="button" class="tool" disabled id="tool-sst" aria-pressed="false" aria-controls="card-sst"><svg viewBox="0 0 24 24"><path d="M2 17c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><path d="M12 3v9M9.5 9.5 12 12l2.5-2.5"/></svg><span>حرارة البحر</span></button>
+  <button type="button" class="tool" disabled id="tool-snow" aria-pressed="false" aria-controls="card-snow"><svg viewBox="0 0 24 24"><path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7"/><path d="M9.5 4 12 6l2.5-2M9.5 20l2.5-2 2.5 2"/></svg><span>الثلج والجليد</span></button>
 </nav>
 <div id="err" hidden></div>
 
@@ -504,10 +572,17 @@ async function select(lng,lat,name,z){
   }catch(e){ if(tok===selToken){ val.textContent='—'; lbl.textContent='تعذّر قراءة الارتفاع هنا'; } }
 }
 map.on('click', e => {
+  const box=[[e.point.x-7,e.point.y-7],[e.point.x+7,e.point.y+7]];
   if (openTool==='quakes' && map.getLayer('quakes')){
-    const f=map.queryRenderedFeatures([[e.point.x-6,e.point.y-6],[e.point.x+6,e.point.y+6]],{ layers:['quakes'] })[0];
+    const f=map.queryRenderedFeatures(box,{ layers:['quakes'] })[0];
     if (f){ showQuake(f); return; }
   }
+  if (openTool==='events' && map.getLayer('ev-pt')){
+    const f=map.queryRenderedFeatures(box,{ layers:['ev-pt'] })[0];
+    if (f){ showEvent(f); return; }
+  }
+  if (openTool==='weather') weatherAt(e.lngLat.lng, e.lngLat.lat);
+  if (openTool==='sst') sstAt(e.lngLat.lng, e.lngLat.lat);
   const z=Math.max(3,Math.min(13,Math.round(map.getZoom())+2));
   select(e.lngLat.lng, e.lngLat.lat, null, z);
 });
@@ -518,12 +593,14 @@ exag.addEventListener('input',()=>{ exagOut.textContent='×'+(+exag.value); if(i
 
 // ---------- 3D / 2D ----------
 // ---------- tools: one card open at a time ----------
-const TOOL_IDS=['places','view','water','day','era','sun','sat','clouds','quakes','lights'];
+const TOOL_IDS=['places','view','water','day','era','sun','sat','clouds','lights','quakes','events','iss','weather','sst','snow'];
 let openTool=null;
 // Each tool owns its effect on the planet. Leaving a tool puts the planet back to today,
 // so tools never pile on top of each other: water, night, ancient maps and Sun distance stay separate.
 function leaveTool(t){
   if (t==='quakes') stopQuakes();
+  if (t==='iss') stopISS();
+  if (t==='weather') hideCityTemps();
   if (t==='water'){ stopAnim(); setSea(0); }
   if (t==='day'){ stopDay(); timeOffset=0; hourIn.value='0'; drawSun(); }
   if (t==='era'){ stopEra(); if (eraIdx!==0) setEra(0); }
@@ -538,6 +615,11 @@ function applyVisibility(){
   if (openTool==='clouds') ensureClouds(); vis('clouds', openTool==='clouds');
   if (openTool==='lights') ensureLights(); vis('lights', openTool==='lights');
   if (openTool==='quakes') startQuakes(); ['quakes','quakes-hi'].forEach(id=>vis(id, openTool==='quakes'));
+  if (openTool==='events' && !evData && !evLoading) loadEvents(); ['ev-track','ev-pt'].forEach(id=>vis(id, openTool==='events'));
+  if (openTool==='iss') startISS(); vis('iss-track', openTool==='iss');
+  if (openTool==='weather' && !cityLoading) showCityTemps();
+  if (openTool==='sst') ensureSST(); vis('sst', openTool==='sst');
+  if (openTool==='snow') ensureSnow(); vis('snowl', openTool==='snow' && snowLand.checked); vis('seaice', openTool==='snow' && snowSea.checked);
 }
 function showTool(k){
   const prev=openTool;
@@ -1051,6 +1133,157 @@ Object.keys(QFEEDS).forEach(id=>document.getElementById(id).addEventListener('cl
   qFeed=id; Object.keys(QFEEDS).forEach(k=>document.getElementById(k).setAttribute('aria-pressed',String(k===id)));
   document.getElementById('qInfoT').dataset.auto='1'; loadQuakes();
 }));
+
+// ---------- natural events (NASA EONET) ----------
+const EV_COLOR={ wildfires:'#ff5a36', severeStorms:'#b06bff', seaLakeIce:'#7cc6dd', volcanoes:'#ffb020' };
+const EV_AR={ wildfires:'حريق', severeStorms:'إعصار أو عاصفة', seaLakeIce:'جليد بحري', volcanoes:'بركان', floods:'فيضان', dustHaze:'غبار', drought:'جفاف', earthquakes:'زلزال', landslides:'انهيار أرضي', snow:'ثلوج', tempExtremes:'حرارة شديدة', waterColor:'لون الماء', manmade:'حدث بشري' };
+let evData=null, evFilter='all', evLoading=false;
+async function loadEvents(){
+  evLoading=true;
+  try{
+    const r=await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&days=30'); if(!r.ok) throw new Error(r.status);
+    evData=(await r.json()).events; drawEvents();
+    setTimeout(()=>{ evData=null; }, 10*60*1000);   // refresh on the next visit after ten minutes
+  }catch(e){ document.getElementById('evInfoT').textContent='تعذّر جلب الأحداث'; document.getElementById('evInfoD').textContent='جرّب مرة ثانية بعد قليل.'; }
+  evLoading=false;
+}
+function drawEvents(){
+  const pts=[], lines=[]; let fires=0, storms=0;
+  evData.forEach(ev=>{
+    const cat=ev.categories[0].id; if (cat==='wildfires') fires++; if (cat==='severeStorms') storms++;
+    const show = evFilter==='all' || evFilter===cat || (evFilter==='other' && cat!=='wildfires' && cat!=='severeStorms');
+    if (!show) return;
+    const g=ev.geometry.filter(x=>x.type==='Point'), last=g[g.length-1]; if (!last) return;
+    pts.push({ type:'Feature', properties:{ title:ev.title, cat, date:last.date, mag:last.magnitudeValue??null, unit:last.magnitudeUnit??'', color:EV_COLOR[cat]||'#e8edf5' }, geometry:last });
+    if (g.length>1) lines.push({ type:'Feature', properties:{ color:EV_COLOR[cat]||'#e8edf5' }, geometry:{ type:'LineString', coordinates:g.map(x=>x.coordinates) } });
+  });
+  document.getElementById('evFires').textContent=fmt.format(fires); document.getElementById('evStorms').textContent=fmt.format(storms);
+  const P={ type:'FeatureCollection', features:pts }, L={ type:'FeatureCollection', features:lines };
+  if (!map.getSource('ev-pt')){
+    map.addSource('ev-pt',{ type:'geojson', data:P }); map.addSource('ev-track',{ type:'geojson', data:L });
+    map.addLayer({ id:'ev-track', type:'line', source:'ev-track', paint:{ 'line-color':['get','color'], 'line-width':2, 'line-opacity':0.8, 'line-dasharray':[2,1.5] } });
+    map.addLayer({ id:'ev-pt', type:'circle', source:'ev-pt', paint:{ 'circle-radius':['case',['==',['get','cat'],'severeStorms'],8,6], 'circle-color':['get','color'], 'circle-stroke-color':'#fff', 'circle-stroke-width':1.2, 'circle-opacity':0.95 } });
+  } else { map.getSource('ev-pt').setData(P); map.getSource('ev-track').setData(L); }
+  applyVisibility();
+}
+function showEvent(f){
+  const p=f.properties;
+  document.getElementById('evInfoT').textContent=(EV_AR[p.cat]||'حدث')+': ⁨'+p.title+'⁩';
+  const m = p.mag!==null && p.mag!=='null' ? ` · ${fmt.format(+p.mag)} ${p.unit==='kts'?'عقدة':p.unit==='acres'?'فدان':p.unit}` : '';
+  document.getElementById('evInfoD').textContent=`آخر رصد: ${timeFmt.format(new Date(p.date))}${m}`;
+  pin.setLngLat(f.geometry.coordinates).addTo(map);
+}
+document.querySelectorAll('[data-ev]').forEach(b=>b.addEventListener('click',()=>{
+  evFilter=b.dataset.ev; document.querySelectorAll('[data-ev]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); if (evData) drawEvents();
+}));
+
+// ---------- International Space Station ----------
+const issEl=document.createElement('div');
+issEl.innerHTML='<svg viewBox="0 0 40 24" width="40" height="24"><rect x="15" y="8" width="10" height="8" rx="2" fill="#e8edf5"/><rect x="1" y="4" width="11" height="16" fill="#3b6fd8" stroke="#cfe0ff" stroke-width="1"/><rect x="28" y="4" width="11" height="16" fill="#3b6fd8" stroke="#cfe0ff" stroke-width="1"/><path d="M12 12h3M25 12h3" stroke="#e8edf5" stroke-width="2"/></svg>';
+issEl.style.cssText='filter:drop-shadow(0 0 6px rgba(120,170,255,.9));pointer-events:none';
+const issMarker=new maplibregl.Marker({ element:issEl });
+let issTimer=null, issPrev=null;
+const ISS_INC=51.64*D2R, ISS_PERIOD=92.9*60, EARTH_ROT=360/86164;
+function issTrack(lat,lng,asc){
+  // circular-orbit ground track through the current point, ±45 minutes
+  let u=Math.asin(Math.max(-1,Math.min(1,Math.sin(lat*D2R)/Math.sin(ISS_INC)))); if (!asc) u=Math.PI-u;
+  const node=lng - Math.atan2(Math.cos(ISS_INC)*Math.sin(u),Math.cos(u))*R2D;
+  const segs=[[]]; let prev=null;
+  for (let t=-45*60;t<=45*60;t+=30){
+    const uu=u+2*Math.PI*t/ISS_PERIOD;
+    const la=Math.asin(Math.sin(ISS_INC)*Math.sin(uu))*R2D;
+    let lo=node+Math.atan2(Math.cos(ISS_INC)*Math.sin(uu),Math.cos(uu))*R2D - EARTH_ROT*t;
+    lo=((lo+540)%360)-180;
+    if (prev!==null && Math.abs(lo-prev)>180) segs.push([]);
+    segs[segs.length-1].push([lo,la]); prev=lo;
+  }
+  return { type:'Feature', properties:{}, geometry:{ type:'MultiLineString', coordinates:segs } };
+}
+async function pollISS(){
+  try{
+    const now=Math.floor(Date.now()/1000);
+    const r=await fetch(`https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps=${now-20},${now}&units=kilometers`); if(!r.ok) throw new Error(r.status);
+    const [a,b]=await r.json(); const asc=b.latitude>a.latitude;
+    issMarker.setLngLat([b.longitude,b.latitude]).addTo(map);
+    const tr=issTrack(b.latitude,b.longitude,asc);
+    if (!map.getSource('iss-track')){
+      map.addSource('iss-track',{ type:'geojson', data:tr });
+      map.addLayer({ id:'iss-track', type:'line', source:'iss-track', paint:{ 'line-color':'#8fb4ff', 'line-width':1.6, 'line-opacity':0.8, 'line-dasharray':[3,2] } });
+      applyVisibility();
+    } else map.getSource('iss-track').setData(tr);
+    document.getElementById('issAlt').textContent=fmt.format(Math.round(b.altitude))+' كم';
+    document.getElementById('issVel').textContent=fmt.format(Math.round(b.velocity))+' كم/س';
+    document.getElementById('issPos').textContent=`${Math.abs(b.latitude).toFixed(1)}° ${b.latitude>=0?'N':'S'} ${Math.abs(b.longitude).toFixed(1)}° ${b.longitude>=0?'E':'W'}`;
+    document.getElementById('issVis').textContent= b.visibility==='daylight' ? 'في ضوء الشمس' : 'في ظل الأرض';
+    if (document.getElementById('issFollow').checked && !map.isMoving()) map.easeTo({ center:[b.longitude,b.latitude], duration: issPrev ? 2800 : 1500, easing:t=>t });
+    issPrev=b;
+  }catch(e){ document.getElementById('issVis').textContent='تعذّر جلب الموقع'; }
+}
+function startISS(){ if (issTimer) return; pollISS(); issTimer=setInterval(pollISS,3000); }
+function stopISS(){ clearInterval(issTimer); issTimer=null; issPrev=null; issMarker.remove(); }
+
+// ---------- weather now (Open-Meteo) ----------
+const CITIES=[['الرياض',24.71,46.68],['جدة',21.49,39.19],['مكة',21.42,39.83],['دبي',25.2,55.27],['الدوحة',25.29,51.53],['الكويت',29.37,47.98],['مسقط',23.59,58.41],['القاهرة',30.04,31.24],['بغداد',33.31,44.37],['عمّان',31.95,35.93],['الخرطوم',15.5,32.56],['الرباط',34.02,-6.84],['إسطنبول',41.01,28.98],['طهران',35.69,51.39],
+  ['لندن',51.51,-0.13],['باريس',48.86,2.35],['موسكو',55.76,37.62],['لاغوس',6.52,3.38],['نيروبي',-1.29,36.82],['كيب تاون',-33.92,18.42],['مومباي',19.08,72.88],['دلهي',28.61,77.21],['بكين',39.9,116.4],['طوكيو',35.68,139.69],['سنغافورة',1.35,103.82],['جاكرتا',-6.2,106.85],['سيدني',-33.87,151.21],
+  ['نيويورك',40.71,-74.01],['لوس أنجلوس',34.05,-118.24],['مكسيكو',19.43,-99.13],['ساو باولو',-23.55,-46.63],['بوينس آيرس',-34.6,-58.38],['ليما',-12.05,-77.04],['أنكوريج',61.22,-149.9],['ريكيافيك',64.15,-21.94],['نوك',64.18,-51.72],['ماكموردو (القطب الجنوبي)',-77.85,166.67]];
+const WX={0:'صافٍ',1:'صافٍ غالبًا',2:'غائم جزئيًا',3:'غائم',45:'ضباب',48:'ضباب متجمد',51:'رذاذ خفيف',53:'رذاذ',55:'رذاذ كثيف',56:'رذاذ متجمد',57:'رذاذ متجمد',61:'مطر خفيف',63:'مطر',65:'مطر غزير',66:'مطر متجمد',67:'مطر متجمد',71:'ثلج خفيف',73:'ثلج',75:'ثلج كثيف',77:'حبيبات ثلج',80:'زخات مطر',81:'زخات مطر',82:'زخات غزيرة',85:'زخات ثلج',86:'زخات ثلج كثيفة',95:'عاصفة رعدية',96:'عاصفة رعدية مع برد',99:'عاصفة رعدية مع برد'};
+const tempColor=t=> t<=-20?'#6f42c1': t<=0?'#4a7bd6': t<=10?'#4fb3d9': t<=20?'#5cc28a': t<=28?'#e8c33a': t<=35?'#f08a24':'#d6336c';
+let cityMarkers=[], cityLoadedAt=0, cityLoading=false;
+async function showCityTemps(){
+  if (cityMarkers.length && Date.now()-cityLoadedAt<15*60*1000){ cityMarkers.forEach(m=>m.addTo(map)); return; }
+  cityLoading=true;
+  try{
+    const u=`https://api.open-meteo.com/v1/forecast?latitude=${CITIES.map(c=>c[1]).join(',')}&longitude=${CITIES.map(c=>c[2]).join(',')}&current=temperature_2m,weather_code`;
+    const r=await fetch(u); if(!r.ok) throw new Error(r.status); const j=await r.json();
+    cityMarkers.forEach(m=>m.remove()); cityMarkers=[];
+    j.forEach((d,i)=>{
+      const t=Math.round(d.current.temperature_2m), el=document.createElement('div');
+      el.style.cssText=`font:600 11px/1 var(--f-body);color:#0b0f18;background:${tempColor(t)};border-radius:999px;padding:3px 7px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.5);cursor:pointer`;
+      el.textContent=`${CITIES[i][0]} ${t}°`; el.title=WX[d.current.weather_code]||'';
+      el.addEventListener('click',ev=>{ ev.stopPropagation(); weatherAt(CITIES[i][2],CITIES[i][1],CITIES[i][0]); });
+      cityMarkers.push(new maplibregl.Marker({ element:el }).setLngLat([CITIES[i][2],CITIES[i][1]]));
+    });
+    cityLoadedAt=Date.now(); document.getElementById('wxUpdated').textContent=timeFmt.format(new Date());
+    if (openTool==='weather') cityMarkers.forEach(m=>m.addTo(map));
+  }catch(e){ document.getElementById('wxT').textContent='تعذّر جلب الطقس'; }
+  cityLoading=false;
+}
+function hideCityTemps(){ cityMarkers.forEach(m=>m.remove()); }
+const dirAr=d=>['شمالية','شمالية شرقية','شرقية','جنوبية شرقية','جنوبية','جنوبية غربية','غربية','شمالية غربية'][Math.round(d/45)%8];
+async function weatherAt(lng,lat,name){
+  document.getElementById('wxT').textContent='جارٍ جلب الطقس…';
+  try{
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lng.toFixed(3)}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,is_day&timezone=auto`);
+    const c=(await r.json()).current;
+    document.getElementById('wxT').textContent=(name ? name+': ' : '')+(WX[c.weather_code]||'—')+(c.is_day?'':' (ليل)');
+    document.getElementById('wxD').textContent=`${Math.abs(lat).toFixed(2)}° ${lat>=0?'N':'S'}، ${Math.abs(lng).toFixed(2)}° ${lng>=0?'E':'W'}`;
+    document.getElementById('wxTemp').textContent=Math.round(c.temperature_2m)+'°C';
+    document.getElementById('wxFeel').textContent=Math.round(c.apparent_temperature)+'°C';
+    document.getElementById('wxHum').textContent=c.relative_humidity_2m+'%';
+    document.getElementById('wxWind').textContent=`${Math.round(c.wind_speed_10m)} كم/س ${dirAr(c.wind_direction_10m)}`;
+  }catch(e){ document.getElementById('wxT').textContent='تعذّر جلب الطقس لهذا المكان'; }
+}
+
+// ---------- sea surface temperature ----------
+function ensureSST(){ addRaster('sst', `${GIBS}GHRSST_L4_MUR_Sea_Surface_Temperature/default/default/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png`, 7, 'صور: NASA GIBS / GHRSST MUR', 0.9); }
+async function sstAt(lng,lat){
+  const T=document.getElementById('sstT'), D=document.getElementById('sstD');
+  T.textContent='جارٍ القراءة…';
+  try{
+    const r=await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat.toFixed(3)}&longitude=${lng.toFixed(3)}&current=sea_surface_temperature`);
+    const v=(await r.json()).current?.sea_surface_temperature;
+    if (v==null){ T.textContent='هذه النقطة على اليابسة'; D.textContent='اضغط على البحر.'; return; }
+    T.textContent=`حرارة سطح البحر: ${v.toFixed(1)}°م`; D.textContent=`${Math.abs(lat).toFixed(2)}° ${lat>=0?'N':'S'}، ${Math.abs(lng).toFixed(2)}° ${lng>=0?'E':'W'}`;
+  }catch(e){ T.textContent='تعذّر القراءة'; }
+}
+
+// ---------- snow & sea ice ----------
+const snowLand=document.getElementById('snowLand'), snowSea=document.getElementById('snowSea');
+function ensureSnow(){
+  addRaster('snowl', `${GIBS}VIIRS_NOAA20_NDSI_Snow_Cover/default/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`, 8, 'صور: NASA GIBS (VIIRS)', 0.9);
+  addRaster('seaice', `${GIBS}GHRSST_L4_MUR_Sea_Ice_Concentration/default/default/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png`, 7, 'صور: NASA GIBS (GHRSST)', 0.9);
+}
+[snowLand,snowSea].forEach(c=>c.addEventListener('change',applyVisibility));
 
 map.on('load',()=>{
   ready=true; document.querySelectorAll('.tool').forEach(b=>b.disabled=false);
