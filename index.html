@@ -267,6 +267,61 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
     </div>
   </div>
 </section>
+<section class="card" id="card-sat" aria-labelledby="h-sat" hidden>
+  <div class="card-h"><div><h2 id="h-sat">صور الأقمار الصناعية</h2><p>صورة الأرض الحقيقية من الفضاء فوق التضاريس. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="row">
+    <label for="satOp">وضوح الصورة</label>
+    <input type="range" id="satOp" min="0.2" max="1" step="0.05" value="1">
+    <output id="satOpOut" for="satOp">100%</output>
+  </div>
+  <p class="muted">قرّب على مدينتك وشوف البيوت والشوارع. الصور مجمّعة من أقمار وطائرات عبر عدة سنوات.</p>
+  <p class="src">الصور: Esri World Imagery (Maxar، Earthstar Geographics وغيرها).</p>
+</section>
+<section class="card" id="card-clouds" aria-labelledby="h-clouds" hidden>
+  <div class="card-h"><div><h2 id="h-clouds">الغيوم</h2><p>غيوم الأرض كلها كما صوّرها قمر ناسا في اليوم المختار. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="head">
+    <span class="when" id="cloudDate">—</span>
+    <div class="wbtns">
+      <button type="button" class="icon" id="cloudOlder">◀ يوم أقدم</button>
+      <button type="button" class="icon" id="cloudNewer">يوم أحدث ▶</button>
+    </div>
+  </div>
+  <div class="row">
+    <label for="cloudOp">وضوح الصورة</label>
+    <input type="range" id="cloudOp" min="0.2" max="1" step="0.05" value="1">
+    <output id="cloudOpOut" for="cloudOp">100%</output>
+  </div>
+  <p class="muted" id="cloudNote">القمر يصوّر الأرض في شرائط أثناء دورانه، فقد تظهر فجوات قرب خط الاستواء. صورة اليوم تكتمل بعد ساعات، لذلك نبدأ بالأمس.</p>
+  <p class="src">الصور: NASA GIBS / Worldview، القمر NOAA-20 (VIIRS).</p>
+</section>
+<section class="card" id="card-quakes" aria-labelledby="h-quakes" hidden>
+  <div class="card-h"><div><h2 id="h-quakes">الزلازل الحيّة</h2><p>زلازل العالم الحقيقية من هيئة المسح الجيولوجي الأمريكية، وتتحدّث تلقائيًا. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="seg" role="group" aria-label="الفترة" style="display:flex">
+    <button type="button" id="qDay" aria-pressed="false" style="flex:1">آخر يوم</button>
+    <button type="button" id="qWeek" aria-pressed="true" style="flex:1">آخر أسبوع</button>
+    <button type="button" id="qMonth" aria-pressed="false" style="flex:1">آخر شهر (4.5+)</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><span>عدد الزلازل</span><b id="qCount">—</b></div>
+    <div class="stat"><span>أقوى زلزال</span><b id="qMax">—</b></div>
+  </div>
+  <div class="stage" id="qInfo"><b id="qInfoT">اضغط على أي دائرة</b><span id="qInfoD">لون الدائرة يدل على العمق، وحجمها على القوة.</span></div>
+  <div class="legend">
+    <div class="bar" style="background:linear-gradient(to right,#ffd23f,#ff7a2f 30%,#d6336c 60%,#6f42c1)"></div>
+    <div class="cap"><span>سطحي</span><span>عميق (700 كم)</span></div>
+  </div>
+  <p class="src">البيانات: USGS Earthquake Hazards Program. آخر تحديث: <span id="qUpdated">—</span></p>
+</section>
+<section class="card" id="card-lights" aria-labelledby="h-lights" hidden>
+  <div class="card-h"><div><h2 id="h-lights">أضواء المدن</h2><p>الأرض في الليل كما صوّرها قمر ناسا: أضواء المدن والطرق حول العالم. يختفي أثرها لما تقفلها.</p></div><button type="button" class="x" data-close aria-label="إغلاق">×</button></div>
+  <div class="row">
+    <label for="lightsOp">وضوح الصورة</label>
+    <input type="range" id="lightsOp" min="0.2" max="1" step="0.05" value="1">
+    <output id="lightsOpOut" for="lightsOp">100%</output>
+  </div>
+  <p class="muted">قارن بين المناطق: الخليج والنيل والهند وأوروبا تلمع، وأماكن واسعة في أفريقيا وأستراليا مظلمة.</p>
+  <p class="src">الصورة: NASA Black Marble (VIIRS)، عبر NASA GIBS.</p>
+</section>
 <nav class="dock" aria-label="الأدوات">
   <button type="button" class="tool" id="tool-places" aria-pressed="false" aria-controls="card-places"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>أماكن</span></button>
   <button type="button" class="tool" id="tool-view" aria-pressed="false" aria-controls="card-view"><svg viewBox="0 0 24 24"><path d="M3 18l6-9 4 6 3-4 5 7z"/><path d="M3 21h18"/></svg><span>طريقة العرض</span></button>
@@ -274,6 +329,10 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
   <button type="button" class="tool" id="tool-day" aria-pressed="false" aria-controls="card-day"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg><span>الليل والنهار</span></button>
   <button type="button" class="tool" id="tool-era" aria-pressed="false" aria-controls="card-era"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l-3 2"/><path d="M3.5 4.5v4h4"/></svg><span>رحلة عبر الزمن</span></button>
   <button type="button" class="tool" id="tool-sun" aria-pressed="false" aria-controls="card-sun"><svg viewBox="0 0 24 24"><circle cx="7" cy="12" r="4"/><circle cx="19" cy="12" r="1.8"/><path d="M13 12h2.5M7 5V4M7 20v-1M2 12h1M3.5 8.5l-.7-.7M3.5 15.5l-.7.7"/></svg><span>قرب الشمس</span></button>
+  <button type="button" class="tool" id="tool-sat" aria-pressed="false" aria-controls="card-sat"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M3 5l4 4M17 15l4 4M15 9l2-2M7 17l2-2M2 9l3-3 3 3-3 3zM16 18l3-3 3 3-3 3z"/></svg><span>صور الأقمار</span></button>
+  <button type="button" class="tool" id="tool-clouds" aria-pressed="false" aria-controls="card-clouds"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.4 1.6A3.3 3.3 0 0 0 7 18z"/></svg><span>الغيوم</span></button>
+  <button type="button" class="tool" id="tool-quakes" aria-pressed="false" aria-controls="card-quakes"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-6 3 12 3-9 2 3h6"/></svg><span>الزلازل الحيّة</span></button>
+  <button type="button" class="tool" id="tool-lights" aria-pressed="false" aria-controls="card-lights"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/><circle cx="17" cy="5" r=".8" fill="currentColor"/><circle cx="20" cy="9" r=".8" fill="currentColor"/></svg><span>أضواء المدن</span></button>
 </nav>
 <div id="err" hidden></div>
 
@@ -444,6 +503,10 @@ async function select(lng,lat,name,z){
   }catch(e){ if(tok===selToken){ val.textContent='—'; lbl.textContent='تعذّر قراءة الارتفاع هنا'; } }
 }
 map.on('click', e => {
+  if (openTool==='quakes' && map.getLayer('quakes')){
+    const f=map.queryRenderedFeatures([[e.point.x-6,e.point.y-6],[e.point.x+6,e.point.y+6]],{ layers:['quakes'] })[0];
+    if (f){ showQuake(f); return; }
+  }
   const z=Math.max(3,Math.min(13,Math.round(map.getZoom())+2));
   select(e.lngLat.lng, e.lngLat.lat, null, z);
 });
@@ -454,11 +517,12 @@ exag.addEventListener('input',()=>{ exagOut.textContent='×'+(+exag.value); if(i
 
 // ---------- 3D / 2D ----------
 // ---------- tools: one card open at a time ----------
-const TOOL_IDS=['places','view','water','day','era','sun'];
+const TOOL_IDS=['places','view','water','day','era','sun','sat','clouds','quakes','lights'];
 let openTool=null;
 // Each tool owns its effect on the planet. Leaving a tool puts the planet back to today,
 // so tools never pile on top of each other: water, night, ancient maps and Sun distance stay separate.
 function leaveTool(t){
+  if (t==='quakes') stopQuakes();
   if (t==='water'){ stopAnim(); setSea(0); }
   if (t==='day'){ stopDay(); timeOffset=0; hourIn.value='0'; drawSun(); }
   if (t==='era'){ stopEra(); if (eraIdx!==0) setEra(0); }
@@ -469,6 +533,10 @@ function applyVisibility(){
   vis('night', openTool==='day' && sunOn);
   ['sunpt','sunpt-glow'].forEach(id=>vis(id, (openTool==='day' && sunOn) || openTool==='sun'));
   ['heat','ice'].forEach(id=>vis(id, openTool==='sun'));
+  if (openTool==='sat') ensureSat(); vis('sat', openTool==='sat');
+  if (openTool==='clouds') ensureClouds(); vis('clouds', openTool==='clouds');
+  if (openTool==='lights') ensureLights(); vis('lights', openTool==='lights');
+  if (openTool==='quakes') startQuakes(); ['quakes','quakes-hi'].forEach(id=>vis(id, openTool==='quakes'));
 }
 function showTool(k){
   const prev=openTool;
@@ -893,6 +961,93 @@ try{
   const name=(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)) || '';
   document.getElementById('gpu').textContent = name.replace(/^ANGLE \((.*)\)$/,'$1').replace(/Direct3D.*$/,'').replace(/,\s*$/,'').slice(0,60) || '—';
 }catch(e){}
+
+// ================= LIVE DATA =================
+const GIBS='https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/';
+function addRaster(id, tiles, maxzoom, attribution, opacity){
+  if (map.getSource(id)) return;
+  map.addSource(id,{ type:'raster', tiles:[tiles], tileSize:256, maxzoom, attribution });
+  map.addLayer({ id, type:'raster', source:id, paint:{ 'raster-opacity':opacity, 'raster-fade-duration':150 } }, 'heat');
+}
+function bindOpacity(inputId, layerId){
+  const i=document.getElementById(inputId), o=document.getElementById(inputId+'Out');
+  i.addEventListener('input',()=>{ o.textContent=Math.round(i.value*100)+'%'; if (map.getLayer(layerId)) map.setPaintProperty(layerId,'raster-opacity',+i.value); });
+}
+// --- satellite imagery ---
+function ensureSat(){
+  addRaster('sat','https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',19,
+    'صور: Esri, Maxar, Earthstar Geographics', +document.getElementById('satOp').value);
+}
+bindOpacity('satOp','sat');
+// --- daily clouds (true colour) ---
+const CLOUD_LAYERS=['VIIRS_NOAA20_CorrectedReflectance_TrueColor','VIIRS_SNPP_CorrectedReflectance_TrueColor','MODIS_Terra_CorrectedReflectance_TrueColor'];
+let cloudDaysAgo=1, cloudLayerIdx=0, cloudErrors=0;
+const dayFmt=new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{ weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'UTC' });
+function cloudDate(){ const d=new Date(Date.now()-cloudDaysAgo*86400000); return d.toISOString().slice(0,10); }
+function cloudTiles(){ return `${GIBS}${CLOUD_LAYERS[cloudLayerIdx]}/default/${cloudDate()}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`; }
+function ensureClouds(){
+  addRaster('clouds', cloudTiles(), 9, 'صور: NASA GIBS / Worldview', +document.getElementById('cloudOp').value);
+  updateCloudLabel();
+}
+function updateCloudLabel(){
+  document.getElementById('cloudDate').textContent = dayFmt.format(new Date(cloudDate()+'T12:00:00Z'));
+  document.getElementById('cloudNewer').disabled = cloudDaysAgo<=1;
+}
+function refreshClouds(){ cloudErrors=0; if (map.getSource('clouds')) map.getSource('clouds').setTiles([cloudTiles()]); updateCloudLabel(); }
+document.getElementById('cloudOlder').addEventListener('click',()=>{ if (cloudDaysAgo<30){ cloudDaysAgo++; refreshClouds(); } });
+document.getElementById('cloudNewer').addEventListener('click',()=>{ if (cloudDaysAgo>1){ cloudDaysAgo--; refreshClouds(); } });
+bindOpacity('cloudOp','clouds');
+// if a satellite's layer stops publishing, fall back to the next one
+map.on('error', e=>{
+  if (e.sourceId==='clouds' && ++cloudErrors>6 && cloudLayerIdx<CLOUD_LAYERS.length-1){ cloudLayerIdx++; refreshClouds(); }
+});
+// --- city lights ---
+function ensureLights(){
+  addRaster('lights', `${GIBS}VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`, 8,
+    'صور: NASA Black Marble', +document.getElementById('lightsOp').value);
+}
+bindOpacity('lightsOp','lights');
+// --- live earthquakes ---
+const QFEEDS={ qDay:'all_day', qWeek:'2.5_week', qMonth:'4.5_month' };
+let qFeed='qWeek', qTimer=null, qData=null;
+const timeFmt=new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{ day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
+async function loadQuakes(){
+  const url=`https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${QFEEDS[qFeed]}.geojson`;
+  try{
+    const r=await fetch(url,{ cache:'no-store' }); if(!r.ok) throw new Error(r.status);
+    qData=await r.json();
+    qData.features.forEach(f=>{ f.properties.depth=f.geometry.coordinates[2]; f.properties.mag=f.properties.mag ?? 0; });
+    if (!map.getSource('quakes')){
+      map.addSource('quakes',{ type:'geojson', data:qData });
+      const color=['interpolate',['linear'],['get','depth'],0,'#ffd23f',70,'#ff7a2f',300,'#d6336c',700,'#6f42c1'];
+      const radius=['interpolate',['exponential',1.6],['get','mag'],0,2,3,4,5,9,7,20,9,36];
+      map.addLayer({ id:'quakes-hi', type:'circle', source:'quakes', filter:['>=',['get','mag'],6], paint:{ 'circle-radius':['*',radius,1.9], 'circle-color':color, 'circle-opacity':0.18, 'circle-blur':0.6 } });
+      map.addLayer({ id:'quakes', type:'circle', source:'quakes', paint:{ 'circle-radius':radius, 'circle-color':color, 'circle-opacity':0.85, 'circle-stroke-color':'rgba(255,255,255,.7)', 'circle-stroke-width':0.6, 'circle-pitch-alignment':'map' } });
+    } else map.getSource('quakes').setData(qData);
+    const fs=qData.features, top=fs.reduce((a,b)=>(b.properties.mag>(a?.properties.mag??-9)?b:a),null);
+    document.getElementById('qCount').textContent=fmt.format(fs.length);
+    document.getElementById('qMax').textContent = top ? 'M '+top.properties.mag.toFixed(1) : '—';
+    document.getElementById('qUpdated').textContent=timeFmt.format(new Date());
+    if (top && document.getElementById('qInfoT').dataset.auto!=='0') showQuake(top, true);
+    applyVisibility();
+  }catch(e){
+    document.getElementById('qInfoT').textContent='تعذّر جلب بيانات الزلازل';
+    document.getElementById('qInfoD').textContent='تأكد من اتصالك بالإنترنت، وجرّب مرة ثانية بعد قليل.';
+  }
+}
+function showQuake(f, auto){
+  const p=f.properties, [lng,lat,depth]=f.geometry.coordinates;
+  const t=document.getElementById('qInfoT'); t.dataset.auto = auto ? '1' : '0';
+  t.textContent=`${auto?'الأقوى: ':''}زلزال بقوة ${(+p.mag).toFixed(1)}`;
+  document.getElementById('qInfoD').textContent=`\u2068${p.place || 'موقع غير معروف'}\u2069 · عمق ${fmt.format(Math.round(depth))} كم · ${timeFmt.format(new Date(p.time))}${p.tsunami? ' · صدر تنبيه تسونامي':''}`;
+  if (!auto){ pin.setLngLat([lng,lat]).addTo(map); }
+}
+function startQuakes(){ if (qTimer) return; loadQuakes(); qTimer=setInterval(loadQuakes, 5*60*1000); }
+function stopQuakes(){ clearInterval(qTimer); qTimer=null; }
+Object.keys(QFEEDS).forEach(id=>document.getElementById(id).addEventListener('click',()=>{
+  qFeed=id; Object.keys(QFEEDS).forEach(k=>document.getElementById(k).setAttribute('aria-pressed',String(k===id)));
+  document.getElementById('qInfoT').dataset.auto='1'; loadQuakes();
+}));
 
 map.on('load',()=>{
   addSunLayers(); applyVisibility();
